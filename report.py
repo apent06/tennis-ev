@@ -1,0 +1,16 @@
+﻿import json, io
+raw = io.open("backtest.txt", encoding="utf-16", errors="replace").read()
+start = raw.index("{")
+data = json.loads(raw[start:])
+print("n_predictions:", data["n_predictions"])
+print("accuracy:     ", round(data["accuracy"], 4))
+print("brier:        ", round(data["brier"], 4))
+print("log_loss:     ", round(data["log_loss"], 4))
+print()
+mc = data.get("market_comparison")
+print("--- vs market ---")
+print(json.dumps(mc, indent=2) if isinstance(mc, dict) else mc)
+print()
+print("--- calibration ---")
+for r in data["calibration"]:
+    print(f"  {r['bucket']:>9}  n={r['n']:5d}  predicted={r['predicted']:.3f}  observed={r['observed']:.3f}")

@@ -1,0 +1,13 @@
+# core
+requests>=2.31
+numpy>=1.26
+scikit-learn>=1.5
+openpyxl>=3.1          # reading tennis-data.co.uk .xlsx files
+
+# serving
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
+
+# dev / test
+httpx
