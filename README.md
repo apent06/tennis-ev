@@ -1,13 +1,15 @@
 # Tennis Match Prediction Pipeline
 
-I bet on tennis, so I wanted to know something specific: can a model built on
-public match data actually find value against sportsbook prices, or is all of
-that already priced in?
+I bet on tennis and used to work through matchups by hand — recent form,
+opponent quality, surface splits, head-to-head. I wanted to automate that, and
+more importantly find out whether it actually works: can a model built on public
+match data find value against sportsbook prices, or is all of that already
+priced in?
 
-I built this to answer that. The answer turned out to be no — the market is
-better than my model. But the probabilities it produces are well calibrated,
-and getting to a trustworthy "no" meant building the pipeline carefully enough
-that the result actually means something.
+The answer turned out to be no. The market is better than my model. But the
+probabilities it produces are well calibrated, and getting to a trustworthy "no"
+meant building the pipeline carefully enough that the result actually means
+something.
 
 ## Results
 
