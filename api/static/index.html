@@ -9,22 +9,22 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   /* ------------------------------------------------------------------
-     Slate navy ground, bone ink, copper for the market. Cool ground with a
-     single warm accent -- the two stay distinct at any size, and the warm
-     mark always means the market is talking.
+     Black ground, bone ink, red for the market. Two inks as before: bone
+     is ours, red is theirs. On a black ground the red carries at small
+     sizes without needing a separate lighter tint.
      ------------------------------------------------------------------ */
   :root {
-    --ground:    #141D26;
-    --panel:     #1D2731;
-    --band:      #1A242D;
-    --ink:       #EAF0F3;
-    --ink-soft:  #9FB0BC;
-    --ink-faint: #6E8391;
-    --rule:      rgba(234,240,243,.16);
-    --rule-firm: rgba(234,240,243,.55);
-    --spot:      #D2764E;
-    --spot-ink:  #E08F6A;
-    --spot-pale: rgba(210,118,78,.15);
+    --ground:    #08090A;
+    --panel:     #141618;
+    --band:      #101214;
+    --ink:       #F4F6F7;
+    --ink-soft:  #9AA3A9;
+    --ink-faint: #646D73;
+    --rule:      rgba(244,246,247,.13);
+    --rule-firm: rgba(244,246,247,.45);
+    --spot:      #FF4438;
+    --spot-ink:  #FF7368;
+    --spot-pale: rgba(255,68,56,.14);
   }
 
   * { box-sizing: border-box; }
@@ -191,44 +191,70 @@
   }
 
   /* --- signature: the reckoning scale --------------------------------
-     A ruled measuring instrument, not a progress bar. Major ticks every
-     10 points, minor every 2. Two needles: model in black, market in red.
-     The interval between them is the edge, hatched.
+     A measuring line rather than a bar. The track is thin and quiet; the
+     two markers and the span between them carry the meaning. Labels sit in
+     chips so they stay readable wherever the markers land.
      ------------------------------------------------------------------ */
-  .scale { position: relative; margin: 6px 0 0; padding: 52px 0 36px; }
-  .scale-rail { position: relative; height: 46px; border: 1px solid var(--rule-firm);
-                background: var(--panel); overflow: hidden; }
-  .ticks { position: absolute; inset: 0; }
-  .tick { position: absolute; top: 0; width: 1px; background: rgba(234,240,243,.26); }
-  .tick.minor { height: 8px; }
-  .tick.major { height: 15px; background: rgba(234,240,243,.55); }
+  .scale { position: relative; margin: 10px 0 0; padding: 74px 0 72px; }
+
+  .scale-rail { position: relative; height: 3px; background: var(--rule); }
+
+  /* The disagreement, drawn as a solid segment on the track.
+     Named scale-gap, not .span -- the form has <div class="field span"> and a
+     bare .span rule silently pulled that field out of the grid. */
+  .scale-gap {
+    position: absolute; top: -1px; height: 5px;
+    background: var(--spot); border-radius: 3px;
+  }
+
+  .ticks { position: absolute; left: 0; right: 0; top: 11px; height: 16px; }
+  .tick { position: absolute; top: 0; width: 1px; height: 5px;
+          background: rgba(244,246,247,.20); }
+  .tick.major { height: 9px; background: rgba(244,246,247,.34); }
   .tickno {
-    position: absolute; top: 18px; transform: translateX(-50%);
-    font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; color: var(--ink-faint);
-  }
-  .hatch {
-    position: absolute; top: 0; bottom: 0;
-    background: repeating-linear-gradient(45deg,
-      transparent 0 4px, rgba(210,118,78,.28) 4px 8px);
-    border-left: 1px solid var(--spot); border-right: 1px solid var(--spot);
-  }
-  /* anchored to the rail (52px down, 46px tall), overhanging 8px each side */
-  .needle { position: absolute; top: 44px; bottom: 28px; width: 2px;
-            transition: left .45s cubic-bezier(.22,.9,.28,1); }
-  .needle.model  { background: var(--ink); }
-  .needle.market { background: var(--spot); }
-  .needle b {
-    position: absolute; left: 50%; transform: translateX(-50%);
+    position: absolute; top: 12px; transform: translateX(-50%);
     font-family: 'IBM Plex Mono', monospace; font-size: 10px;
-    letter-spacing: .1em; text-transform: uppercase; white-space: nowrap;
-    padding: 0 3px; background: var(--ground);
+    color: var(--ink-faint); letter-spacing: .04em;
   }
-  .needle.model b  { top: -17px; color: var(--ink); }
-  .needle.market b { bottom: -17px; color: var(--spot-ink); }
+
+  .needle { position: absolute; top: 50%; transition: left .5s cubic-bezier(.2,.85,.3,1); }
+  .dot {
+    position: absolute; top: -6px; left: -6px;
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 3px solid var(--ground);
+  }
+  .stem { position: absolute; left: -1px; width: 2px; }
+  .needle.model  .dot  { background: var(--ink); }
+  .needle.model  .stem { background: var(--ink); bottom: 4px; height: 30px; }
+  .needle.market .dot  { background: var(--spot); }
+  .needle.market .stem { background: var(--spot); top: 4px; height: 30px; }
+
+  .chip {
+    position: absolute; left: 0; transform: translateX(-50%);
+    display: flex; align-items: baseline; gap: 7px;
+    padding: 5px 11px; white-space: nowrap;
+    background: var(--panel); border: 1px solid var(--rule);
+    border-radius: 100px;
+  }
+  .chip .who {
+    font-family: 'IBM Plex Mono', monospace; font-size: 9px;
+    letter-spacing: .18em; text-transform: uppercase; color: var(--ink-faint);
+  }
+  .chip .val {
+    font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .needle.model  .chip { bottom: 34px; }
+  .needle.model  .chip .val { color: var(--ink); }
+  .needle.market .chip { top: 34px; }
+  .needle.market .chip .val { color: var(--spot-ink); }
+  .needle.market .chip { border-color: rgba(255,68,56,.4); }
+
+  /* sits in the band between the chip row and the track, clear of both */
   .edgetag {
-    position: absolute; top: 4px; transform: translateX(-50%);
+    position: absolute; top: 46px; transform: translateX(-50%);
     font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
-    color: var(--spot-ink); white-space: nowrap;
+    letter-spacing: .06em; color: var(--spot-ink); white-space: nowrap;
   }
   @media (prefers-reduced-motion: reduce) { .needle { transition: none; } }
 
@@ -258,26 +284,56 @@
     margin: 44px 0 0; padding-top: 16px; border-top: 3px solid var(--rule-firm);
   }
 
-  /* ---------- contributions ---------- */
-  .contribs { margin-top: 16px; }
-  .crow {
-    display: grid;
-    grid-template-columns: minmax(150px,1.5fr) 1fr 66px minmax(74px,.85fr);
-    align-items: center; gap: 12px; padding: 7px 10px; font-size: 14.5px;
+  /* ---------- contributions: diverging from a centre axis ----------
+     Direction is carried by which side of the axis a bar sits on, so the
+     colour is reinforcement rather than the only signal. -------------- */
+  .sectlede { font-size: 14px; color: var(--ink-soft); max-width: 66ch;
+              margin: 12px 0 20px; }
+  .sectlede b { color: var(--ink); font-weight: 600; }
+
+  .diverge { display: flex; flex-direction: column; }
+  .dhead {
+    display: grid; grid-template-columns: minmax(150px,1.4fr) 1fr 58px;
+    align-items: center; gap: 14px; padding: 0 10px 7px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 9.5px;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--ink-faint);
+    border-bottom: 1px solid var(--rule);
   }
-  .crow:nth-child(odd) { background: var(--band); }
-  .cbarwrap { position: relative; height: 9px; background: var(--panel); border: 1px solid var(--rule); }
-  .cbar { position: absolute; top: 0; bottom: 0; left: 0; }
-  .cbar.toP1 { background: var(--ink); }
-  .cbar.toP2 { background: var(--spot); }
-  .cval { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
-          text-align: right; font-variant-numeric: tabular-nums; }
-  .cval.toP1 { color: var(--ink); font-weight: 700; }
-  .cval.toP2 { color: var(--spot-ink); font-weight: 700; }
-  .cwho { font-size: 12.5px; color: var(--ink-soft); text-align: right;
-          overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .cnote { font-size: 13px; color: var(--ink-faint); margin-top: 14px;
-           max-width: 62ch; font-style: italic; }
+  .dends { display: flex; justify-content: space-between; }
+  .dends i { font-style: normal; }
+  .dends i:first-child { color: var(--spot-ink); }
+  .dends i:last-child  { color: var(--ink-soft); }
+
+  .drow {
+    display: grid; grid-template-columns: minmax(150px,1.4fr) 1fr 58px;
+    align-items: center; gap: 14px;
+    padding: 9px 10px; font-size: 14.5px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .drow:last-of-type { border-bottom: none; }
+  .dlabel { color: var(--ink); }
+
+  .dtrack { position: relative; height: 20px; }
+  .daxis {
+    position: absolute; left: 50%; top: 0; bottom: 0; width: 1px;
+    background: var(--ink-faint); transform: translateX(-.5px);
+  }
+  .dbar {
+    position: absolute; top: 5px; height: 10px; border-radius: 1px;
+    transition: width .4s cubic-bezier(.22,.9,.28,1);
+  }
+  .dbar.toP1 { background: var(--ink); }
+  .dbar.toP2 { background: var(--spot); }
+
+  .dval {
+    font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+    text-align: right; font-variant-numeric: tabular-nums;
+  }
+  .dval.toP1 { color: var(--ink); }
+  .dval.toP2 { color: var(--spot-ink); }
+
+  .cnote { font-size: 12.5px; color: var(--ink-faint); margin-top: 16px;
+           max-width: 66ch; line-height: 1.5; }
 
   /* ---------- notices ---------- */
   .flag {
@@ -317,12 +373,12 @@
     .verdict { grid-template-columns: 1fr; gap: 4px; }
     .side.two { text-align: left; }
     .versus { padding: 6px 0; }
-    .crow { grid-template-columns: 1fr 58px;
-            grid-template-areas: 'label val' 'bar bar'; row-gap: 4px; }
-    .clabel { grid-area: label; }
-    .cval { grid-area: val; }
-    .cbarwrap { grid-area: bar; }
-    .cwho { display: none; }
+    .dhead { display: none; }
+    .drow { grid-template-columns: 1fr 54px;
+            grid-template-areas: 'label val' 'bar bar'; row-gap: 5px; }
+    .dlabel { grid-area: label; }
+    .dval { grid-area: val; }
+    .dtrack { grid-area: bar; }
   }
 </style>
 </head>
@@ -638,36 +694,46 @@ function fail(j) {
 
 /* the reckoning scale: ruler ticks, two needles, hatched interval */
 function buildScale(p, marketP) {
+  // quiet ruler: minor marks every 5, labelled every 20
   let ticks = '';
-  for (let v = 0; v <= 100; v += 2) {
-    const major = v % 10 === 0;
-    ticks += '<span class="tick ' + (major ? 'major' : 'minor') +
+  for (let v = 0; v <= 100; v += 5) {
+    const major = v % 20 === 0;
+    ticks += '<span class="tick' + (major ? ' major' : '') +
              '" style="left:' + v + '%"></span>';
     if (major && v > 0 && v < 100) {
       ticks += '<span class="tickno" style="left:' + v + '%">' + v + '</span>';
     }
   }
 
-  const edgePos = v => v > 90 ? 'left:auto;right:0;transform:none'
-                     : v < 10 ? 'left:0;transform:none' : '';
+  const clamp = v => Math.min(94, Math.max(6, v));   // keep chips on screen
 
-  let hatch = '', tag = '', needles = '';
+  let span = '', tag = '', needles = '';
   if (marketP !== null) {
     const lo = Math.min(p, marketP) * 100, hi = Math.max(p, marketP) * 100;
-    hatch = '<span class="hatch" style="left:' + lo + '%;width:' + (hi - lo) + '%"></span>';
+    span = '<span class="scale-gap" style="left:' + lo +
+           '%;width:' + (hi - lo) + '%"></span>';
     const mp = marketP * 100;
     needles += '<span class="needle market" style="left:' + mp + '%">' +
-               '<b style="' + edgePos(mp) + '">Market ' + pct(marketP) + '</b></span>';
+               '<span class="stem"></span><span class="dot"></span>' +
+               '<span class="chip" style="left:' + (clamp(mp) - mp) + '%">' +
+                 '<span class="who">Market</span>' +
+                 '<span class="val">' + pct(marketP) + '</span></span></span>';
     const gap = (p - marketP) * 100;
     tag = '<span class="edgetag" style="left:' + ((lo + hi) / 2) + '%">' +
-          (gap > 0 ? '+' : '') + gap.toFixed(1) + ' pts</span>';
+          (gap > 0 ? '+' : '\u2212') + Math.abs(gap).toFixed(1) + ' pts</span>';
   }
-  needles += '<span class="needle model" style="left:' + (p * 100) + '%">' +
-             '<b style="' + edgePos(p * 100) + '">Model ' + pct(p) + '</b></span>';
 
-  return '<div class="scale">' + tag +
-         '<div class="scale-rail"><div class="ticks">' + ticks + '</div>' + hatch + '</div>' +
-         needles + '</div>';
+  const pp = p * 100;
+  needles += '<span class="needle model" style="left:' + pp + '%">' +
+             '<span class="stem"></span><span class="dot"></span>' +
+             '<span class="chip" style="left:' + (clamp(pp) - pp) + '%">' +
+               '<span class="who">Model</span>' +
+               '<span class="val">' + pct(p) + '</span></span></span>';
+
+  return '<div class="scale">' +
+         '<div class="scale-rail">' + span +
+           '<div class="ticks">' + ticks + '</div>' + needles +
+         '</div>' + tag + '</div>';
 }
 
 function render(d, edge) {
@@ -731,18 +797,30 @@ function render(d, edge) {
   if (d.explanation && d.explanation.contributions.length) {
     const cs = d.explanation.contributions;
     const max = Math.max(...cs.map(c => Math.abs(c.delta)));
-    html += '<h3 class="secttl">What moved this number</h3><div class="contribs">';
+    html += '<h3 class="secttl">What moved this number</h3>' +
+      '<p class="sectlede">Each factor below is switched off in turn — the two ' +
+      'players made equal on it — to see how far the estimate shifts. A longer ' +
+      'bar means that factor is doing more of the work. Bars run left for ' +
+      '<b>' + esc(d.p2) + '</b>, right for <b>' + esc(d.p1) + '</b>.</p>' +
+      '<div class="diverge">' +
+      '<div class="dhead"><span></span>' +
+        '<span class="dends"><i>\u25c0 ' + esc(d.p2) + '</i>' +
+          '<i>' + esc(d.p1) + ' \u25b6</i></span>' +
+        '<span></span></div>';
+
     cs.forEach(c => {
-      const w = (Math.abs(c.delta) / max) * 100;
-      const toward = c.favours === 1 ? d.p1 : d.p2;
-      const cls = c.favours === 1 ? 'toP1' : 'toP2';
-      html += '<div class="crow">' +
-        '<span class="clabel">' + esc(c.label) + '</span>' +
-        '<span class="cbarwrap"><span class="cbar ' + cls +
-          '" style="width:' + w + '%"></span></span>' +
-        '<span class="cval ' + cls + '">' + (c.delta > 0 ? '+' : '') +
-          (c.delta * 100).toFixed(1) + '</span>' +
-        '<span class="cwho">' + esc(toward) + '</span>' +
+      const w = (Math.abs(c.delta) / max) * 50;   // half-width max
+      const right = c.favours === 1;
+      const cls = right ? 'toP1' : 'toP2';
+      const style = right ? 'left:50%;width:' + w + '%'
+                          : 'right:50%;width:' + w + '%';
+      html += '<div class="drow">' +
+        '<span class="dlabel">' + esc(c.label) + '</span>' +
+        '<span class="dtrack"><span class="daxis"></span>' +
+          '<span class="dbar ' + cls + '" style="' + style + '"></span></span>' +
+        '<span class="dval ' + cls + '">' +
+          (c.delta > 0 ? '+' : '\u2212') +
+          Math.abs(c.delta * 100).toFixed(1) + '</span>' +
       '</div>';
     });
     html += '</div><p class="cnote">' + esc(d.explanation.note) + '</p>';
