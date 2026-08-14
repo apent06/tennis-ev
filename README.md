@@ -197,3 +197,19 @@ the opponent-quality bug above.
 Backtested edges shrink a lot against live markets, and closing-line movement
 means the price you actually get usually isn't the one you modeled. This
 backtest says my model doesn't beat the market, which I'm taking seriously.
+
+## Market efficiency tests
+
+Two scripts testing the market directly, no model involved.
+
+`bias_test.py` — buckets every side by the market's de-vigged probability and
+checks how often each bucket won. Favourites: implied 0.677, actual 0.677 over
+24,105 observations. Underdogs: implied 0.322, actual 0.322. No favourite-longshot
+bias at tour level.
+
+`underdog_test.py` — tests whether the market anchors on ranking and misses
+fundamentals. For every match, checks whether the underdog actually had better
+last-10 form, better opponent quality, and a better surface record than the
+favourite. Where all three were true (n=782), the market implied 0.417 and they
+won 0.416. The control group (underdog worse on all three) also landed near zero.
+The market prices form and opponent quality correctly.
