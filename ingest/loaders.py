@@ -95,9 +95,33 @@ TD_COLUMNS = {
     "date": "Date", "tournament": "Tournament", "series": "Series",
     "surface": "Surface", "round": "Round", "winner": "Winner", "loser": "Loser",
     "wrank": "WRank", "lrank": "LRank", "comment": "Comment",
+    # match shape -- all present in their files and worth having
+    "best_of": "Best of", "court": "Court",
+    "wsets": "Wsets", "lsets": "Lsets",
+    "wpts": "WPts", "lpts": "LPts",
     # closing odds -- Pinnacle is the sharpest, use it as the benchmark
     "psw": "PSW", "psl": "PSL", "avgw": "AvgW", "avgl": "AvgL",
 }
+
+# Per-set game counts: W1/L1 .. W5/L5. Summing them gives total games, which is
+# the closest thing to a margin-of-victory signal this source offers.
+SET_COLUMNS = [(f"W{i}", f"L{i}") for i in range(1, 6)]
+
+
+def _games(row) -> tuple[int | None, int | None]:
+    w = l = 0
+    seen = False
+    for wc, lc in SET_COLUMNS:
+        wv, lv = _int_or_none(row.get(wc)), _int_or_none(row.get(lc))
+        # a 6-0 set legitimately has a zero, so read them as raw ints here
+        wv = 0 if wv is None and row.get(wc) in (0, "0") else wv
+        lv = 0 if lv is None and row.get(lc) in (0, "0") else lv
+        if wv is None and lv is None:
+            continue
+        seen = True
+        w += wv or 0
+        l += lv or 0
+    return (w, l) if seen else (None, None)
 
 
 def load_tennis_data_file(conn: sqlite3.Connection, path: str, tour: str = "ATP") -> dict:
@@ -128,6 +152,8 @@ def load_tennis_data_file(conn: sqlite3.Connection, path: str, tour: str = "ATP"
 
         wid = ensure_player(conn, str(w), tour)
         lid = ensure_player(conn, str(l), tour)
+        wg, lg = _games(r)
+        court = r.get(TD_COLUMNS["court"])
 
         out.append({
             "match_date": d,
@@ -143,6 +169,13 @@ def load_tennis_data_file(conn: sqlite3.Connection, path: str, tour: str = "ATP"
             "score": None,
             "retirement": "ret" in comment.lower() or "w/o" in comment.lower(),
             "source_event_key": None,
+            "best_of": _int_or_none(r.get(TD_COLUMNS["best_of"])),
+            "court": str(court).strip().title() if court else None,
+            "w_games": wg, "l_games": lg,
+            "w_sets": _int_or_none(r.get(TD_COLUMNS["wsets"])),
+            "l_sets": _int_or_none(r.get(TD_COLUMNS["lsets"])),
+            "w_pts": _int_or_none(r.get(TD_COLUMNS["wpts"])),
+            "l_pts": _int_or_none(r.get(TD_COLUMNS["lpts"])),
         })
         odds.append((
             _float_or_none(r.get(TD_COLUMNS["psw"])) or _float_or_none(r.get(TD_COLUMNS["avgw"])),
@@ -397,6 +430,11 @@ def generate_synthetic(conn: sqlite3.Connection, n_players: int = 120,
             "winner_rank": None, "loser_rank": None,
             "score": "6-4 6-3", "retirement": rng.random() < 0.03,
             "source_event_key": f"syn_{m}",
+            "best_of": 5 if rng.random() < 0.12 else 3,
+            "court": "Indoor" if rng.random() < 0.25 else "Outdoor",
+            "w_games": rng.randint(12, 20), "l_games": rng.randint(4, 14),
+            "w_sets": 2, "l_sets": rng.randint(0, 1),
+            "w_pts": None, "l_pts": None,
         })
         # market odds = true probability + noise + 5% vig
         p_true = p_a if a_wins else (1 - p_a)

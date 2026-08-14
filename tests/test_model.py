@@ -34,6 +34,13 @@ init_db(conn)
 print("generating synthetic data...")
 generate_synthetic(conn, n_players=80, n_matches=2500, seed=11)
 
+# Elo lives on the match rows and has to be replayed before features can read
+# it. Skipping this is a realistic mistake, so the test does it properly.
+from model.elo import rebuild as elo_rebuild  # noqa: E402
+elo_rebuild(conn, verbose=False)
+check("elo written onto match rows", conn.execute(
+    "SELECT COUNT(*) c FROM matches WHERE w_elo IS NOT NULL").fetchone()["c"] > 0)
+
 pids = [r["player_id"] for r in conn.execute("SELECT player_id FROM players LIMIT 10")]
 check("synthetic players have distinct ids", len(set(pids)) == len(pids))
 
@@ -90,8 +97,44 @@ check("dates are chronologically ordered", all(
 check("no NaNs in feature matrix", not np.isnan(X).any())
 check("no infinities in feature matrix", not np.isinf(X).any())
 
+# Serve/return features are legitimately flat when the source carries no
+# serve data -- which is the case for tennis-data.co.uk. They're kept in the
+# schema so a stats-bearing source drops in without a migration. Everything
+# else must vary.
+SERVE_FEATURES = {"serve_available", "d_serve_won", "d_ace_rate",
+                  "d_df_rate", "d_bp_save", "d_first_in"}
 zero_var = [FEATURE_NAMES[i] for i in range(X.shape[1]) if X[:, i].std() < 1e-9]
-check(f"no zero-variance features (found {zero_var})", not zero_var)
+unexpected = [n for n in zero_var if n not in SERVE_FEATURES]
+check(f"no unexpected zero-variance features (found {unexpected})", not unexpected)
+check("serve features flat because the source has no serve data",
+      set(zero_var) <= SERVE_FEATURES)
+
+si = FEATURE_NAMES.index("serve_available")
+check("serve_available flags absence rather than implying zero rates",
+      X[:, si].max() == 0)
+
+# A feature that is always the same value is a feature that isn't working.
+# d_log_rank silently died on real data because the rankings table was empty
+# and both players fell back to an identical default. Guard it explicitly.
+ri = FEATURE_NAMES.index("d_log_rank")
+check(f"ranking gap varies across matchups (std {X[:, ri].std():.3f})",
+      X[:, ri].std() > 0.05)
+
+# and the fallback path itself: with an empty rankings table, rank must still
+# resolve from the rank recorded on each match row
+conn.execute("DELETE FROM rankings")
+conn.commit()
+from model.features import rank_as_of  # noqa: E402
+some = conn.execute(
+    "SELECT winner_id, match_date FROM matches WHERE winner_rank IS NOT NULL LIMIT 1"
+).fetchone()
+check("rank resolves from match rows when rankings table is empty",
+      some is not None and
+      rank_as_of(conn, some["winner_id"], "2027-01-01") is not None)
+
+ei = FEATURE_NAMES.index("d_elo")
+check(f"elo gap varies across matchups (std {X[:, ei].std():.1f})",
+      X[:, ei].std() > 1.0)
 
 # -- time split ---------------------------------------------------------------
 tr, cal, te = time_split(dates)

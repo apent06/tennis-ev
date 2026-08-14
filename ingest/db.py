@@ -50,6 +50,43 @@ CREATE TABLE IF NOT EXISTS matches (
     score               TEXT,
     retirement          INTEGER DEFAULT 0,
 
+    -- match shape
+    best_of             INTEGER,              -- 3 or 5
+    court               TEXT,                 -- Indoor / Outdoor
+    w_games             INTEGER,              -- total games won by winner
+    l_games             INTEGER,
+    w_sets              INTEGER,
+    l_sets              INTEGER,
+    w_pts               INTEGER,              -- ranking POINTS at match time
+    l_pts               INTEGER,
+
+    -- ratings as of BEFORE this match (filled by model/elo.py).
+    -- Stored on the row so they are point-in-time correct with no join.
+    w_elo               REAL,
+    l_elo               REAL,
+    w_elo_surface       REAL,
+    l_elo_surface       REAL,
+
+    -- serve/return detail. Empty for tennis-data.co.uk, which does not carry
+    -- it. Present so a stats-bearing source can populate them without a
+    -- migration; every consumer treats NULL as 'unavailable', never as zero.
+    w_ace               INTEGER,
+    l_ace               INTEGER,
+    w_df                INTEGER,
+    l_df                INTEGER,
+    w_svpt              INTEGER,              -- service points played
+    l_svpt              INTEGER,
+    w_1st_in            INTEGER,
+    l_1st_in            INTEGER,
+    w_1st_won           INTEGER,
+    l_1st_won           INTEGER,
+    w_2nd_won           INTEGER,
+    l_2nd_won           INTEGER,
+    w_bp_saved          INTEGER,
+    l_bp_saved          INTEGER,
+    w_bp_faced          INTEGER,
+    l_bp_faced          INTEGER,
+
     first_seen_at       TEXT NOT NULL,
     last_updated_at     TEXT NOT NULL,
     ingested_at         TEXT NOT NULL,
@@ -132,8 +169,41 @@ def connect(path: str) -> sqlite3.Connection:
     return conn
 
 
+# Columns added after the first release. migrate() adds any that are missing
+# so an existing database can be upgraded in place without a reload.
+LATER_COLUMNS = [
+    ("best_of", "INTEGER"), ("court", "TEXT"),
+    ("w_games", "INTEGER"), ("l_games", "INTEGER"),
+    ("w_sets", "INTEGER"), ("l_sets", "INTEGER"),
+    ("w_pts", "INTEGER"), ("l_pts", "INTEGER"),
+    ("w_elo", "REAL"), ("l_elo", "REAL"),
+    ("w_elo_surface", "REAL"), ("l_elo_surface", "REAL"),
+    ("w_ace", "INTEGER"), ("l_ace", "INTEGER"),
+    ("w_df", "INTEGER"), ("l_df", "INTEGER"),
+    ("w_svpt", "INTEGER"), ("l_svpt", "INTEGER"),
+    ("w_1st_in", "INTEGER"), ("l_1st_in", "INTEGER"),
+    ("w_1st_won", "INTEGER"), ("l_1st_won", "INTEGER"),
+    ("w_2nd_won", "INTEGER"), ("l_2nd_won", "INTEGER"),
+    ("w_bp_saved", "INTEGER"), ("l_bp_saved", "INTEGER"),
+    ("w_bp_faced", "INTEGER"), ("l_bp_faced", "INTEGER"),
+]
+
+
+def migrate(conn: sqlite3.Connection) -> list[str]:
+    """Add any columns missing from an older database. Safe to re-run."""
+    have = {r[1] for r in conn.execute("PRAGMA table_info(matches)")}
+    added = []
+    for name, coltype in LATER_COLUMNS:
+        if name not in have:
+            conn.execute(f"ALTER TABLE matches ADD COLUMN {name} {coltype}")
+            added.append(name)
+    conn.commit()
+    return added
+
+
 def init_db(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
+    migrate(conn)
     conn.commit()
 
 
@@ -184,12 +254,14 @@ INSERT INTO matches (
     match_date, tour, tour_level, tournament, round, surface,
     winner_id, loser_id, winner_name, loser_name,
     winner_rank, loser_rank, score, retirement,
+    best_of, court, w_games, l_games, w_sets, l_sets, w_pts, l_pts,
     first_seen_at, last_updated_at, ingested_at
 ) VALUES (
     :match_key, :source, :source_event_key,
     :match_date, :tour, :tour_level, :tournament, :round, :surface,
     :winner_id, :loser_id, :winner_name, :loser_name,
     :winner_rank, :loser_rank, :score, :retirement,
+    :best_of, :court, :w_games, :l_games, :w_sets, :l_sets, :w_pts, :l_pts,
     :ts, :ts, :ts
 )
 ON CONFLICT(match_key, source) DO UPDATE SET
@@ -204,6 +276,14 @@ ON CONFLICT(match_key, source) DO UPDATE SET
     loser_rank       = COALESCE(excluded.loser_rank, matches.loser_rank),
     score            = excluded.score,
     retirement       = excluded.retirement,
+    best_of          = COALESCE(excluded.best_of, matches.best_of),
+    court            = COALESCE(excluded.court, matches.court),
+    w_games          = COALESCE(excluded.w_games, matches.w_games),
+    l_games          = COALESCE(excluded.l_games, matches.l_games),
+    w_sets           = COALESCE(excluded.w_sets, matches.w_sets),
+    l_sets           = COALESCE(excluded.l_sets, matches.l_sets),
+    w_pts            = COALESCE(excluded.w_pts, matches.w_pts),
+    l_pts            = COALESCE(excluded.l_pts, matches.l_pts),
     ingested_at      = excluded.ingested_at,
     -- only bump last_updated_at when something MEANINGFUL changed, so this
     -- column stays a real change-detector rather than a re-run counter
@@ -250,6 +330,10 @@ def upsert_matches(conn: sqlite3.Connection, rows: list[dict], source: str) -> d
             "loser_rank": r.get("loser_rank"),
             "score": r.get("score"),
             "retirement": int(bool(r.get("retirement", 0))),
+            "best_of": r.get("best_of"), "court": r.get("court"),
+            "w_games": r.get("w_games"), "l_games": r.get("l_games"),
+            "w_sets": r.get("w_sets"), "l_sets": r.get("l_sets"),
+            "w_pts": r.get("w_pts"), "l_pts": r.get("l_pts"),
             "ts": ts,
         }
         conn.execute(UPSERT_SQL, payload)

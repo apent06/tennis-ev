@@ -20,7 +20,7 @@ from datetime import date, datetime, timedelta
 # yours and tune these rather than trusting the defaults.
 SLO_DAYS = {"G": 2, "M": 2, "A": 3, "C": 5, "S": 7}
 DEFAULT_SLO = 5
-STALE_FORM_DAYS = 21   # if a player's newest match is older than this, flag it
+STALE_FORM_DAYS = 45   # matches model.features.STALE_HARD_DAYS
 
 
 def observed_lag(conn: sqlite3.Connection, days_back: int = 90) -> list[dict]:

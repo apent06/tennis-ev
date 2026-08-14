@@ -65,7 +65,8 @@ def build_dataset(conn: sqlite3.Connection, start: str, end: str,
     """
     rng = random.Random(seed)
     rows = conn.execute(
-        """SELECT match_key, match_date, surface, tour_level, winner_id, loser_id
+        """SELECT match_key, match_date, surface, tour_level, winner_id, loser_id,
+                  best_of, court
            FROM matches
            WHERE match_date >= ? AND match_date < ?
              AND winner_id IS NOT NULL AND loser_id IS NOT NULL
@@ -86,7 +87,8 @@ def build_dataset(conn: sqlite3.Connection, start: str, end: str,
         else:
             p1, p2, label = r["loser_id"], r["winner_id"], 0
 
-        fb = build_features(conn, p1, p2, r["surface"], r["match_date"], r["tour_level"])
+        fb = build_features(conn, p1, p2, r["surface"], r["match_date"],
+                            r["tour_level"], r["best_of"], r["court"])
         m = fb["meta"]
         if m["p1_gap"] or m["p2_gap"]:
             skipped += 1

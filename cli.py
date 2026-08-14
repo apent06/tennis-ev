@@ -67,6 +67,31 @@ def cmd_ingest(args):
     print(run(conn, src, start, end))
 
 
+def cmd_elo(args):
+    from ingest.db import migrate
+    from model.elo import rebuild
+    conn = connect(args.db)
+    migrate(conn)
+    r = rebuild(conn)
+    print(f"elo rebuilt: {r['matches']} matches, {r['players']} players")
+    for pid, rating in r["top5"]:
+        name = conn.execute("SELECT full_name FROM players WHERE player_id=?",
+                            (pid,)).fetchone()
+        print(f"   {rating:>5}  {name['full_name'] if name else pid}")
+
+
+def cmd_baselines(args):
+    from model.baselines import main as run
+    run()
+
+
+def cmd_migrate(args):
+    from ingest.db import migrate
+    conn = connect(args.db)
+    added = migrate(conn)
+    print("added columns:", added or "none (already up to date)")
+
+
 def cmd_train(args):
     from model.train import train
     conn = connect(args.db)
@@ -143,6 +168,9 @@ def main():
     s.add_argument("--edge", type=float, default=0.04)
     s.set_defaults(fn=cmd_backtest)
 
+    sub.add_parser("elo").set_defaults(fn=cmd_elo)
+    sub.add_parser("baselines").set_defaults(fn=cmd_baselines)
+    sub.add_parser("migrate").set_defaults(fn=cmd_migrate)
     sub.add_parser("check").set_defaults(fn=cmd_check)
     sub.add_parser("review").set_defaults(fn=cmd_review)
 

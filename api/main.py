@@ -18,6 +18,7 @@ import sqlite3
 from datetime import date
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from ingest.db import connect, normalize_name
@@ -56,6 +57,8 @@ class Prediction(BaseModel):
     confidence: str
     warnings: list[str]
     freshness: dict
+    explanation: dict | None = None
+    comparison: list[dict] | None = None
 
 
 def resolve_player(conn, name_or_id: str) -> tuple[str, str]:
@@ -67,14 +70,33 @@ def resolve_player(conn, name_or_id: str) -> tuple[str, str]:
 
     norm = normalize_name(name_or_id)
     rows = conn.execute(
-        "SELECT player_id, full_name FROM players WHERE norm_name = ?", (norm,)
+        "SELECT player_id, full_name, tour FROM players WHERE norm_name = ?", (norm,)
     ).fetchall()
     if len(rows) == 1:
         return rows[0]["player_id"], rows[0]["full_name"]
     if len(rows) > 1:
+        # Same display name, different players -- most often one per tour, since
+        # the source stores names as surname-plus-initial with no first name.
+        today = date.today().isoformat()
+        cands = []
+        for r in rows:
+            n = conn.execute(
+                """SELECT COUNT(*) c FROM matches
+                   WHERE winner_id = :pid OR loser_id = :pid""",
+                {"pid": r["player_id"]},
+            ).fetchone()["c"]
+            cands.append({
+                "id": r["player_id"],
+                "full_name": r["full_name"],
+                "tour": r["tour"],
+                "rank": latest_known_rank(conn, r["player_id"], today),
+                "matches": n,
+            })
+        cands.sort(key=lambda x: -x["matches"])
         raise HTTPException(409, {
-            "error": "ambiguous player name",
-            "candidates": [dict(r) for r in rows],
+            "error": f"more than one player is called {name_or_id}",
+            "detail": "Pick one from the dropdown, which sends the exact player.",
+            "candidates": cands,
         })
 
     like = conn.execute(
@@ -85,6 +107,65 @@ def resolve_player(conn, name_or_id: str) -> tuple[str, str]:
         "error": f"player not found: {name_or_id}",
         "did_you_mean": [dict(r) for r in like],
     })
+
+
+@app.get("/", response_class=HTMLResponse)
+def index():
+    """Serve the browser interface."""
+    path = os.path.join(os.path.dirname(__file__), "static", "index.html")
+    if not os.path.exists(path):
+        raise HTTPException(404, "index.html not found")
+    with open(path, encoding="utf-8") as f:
+        return HTMLResponse(f.read())
+
+
+@app.get("/players")
+def players(q: str = Query("", description="name fragment"), limit: int = 12):
+    """
+    Name search for the autocomplete box.
+
+    Returns rank and last-match context alongside the name. The source data
+    stores names as surname-plus-initial only ('Collignon R.'), so there are no
+    first names to show -- this context is what lets you tell two similar
+    entries apart.
+    """
+    conn = db()
+    if len(q.strip()) < 2:
+        return {"players": []}
+    norm = normalize_name(q)
+    rows = conn.execute(
+        """SELECT player_id, full_name, tour FROM players
+           WHERE norm_name LIKE ? OR lower(full_name) LIKE ?
+           ORDER BY length(full_name) LIMIT ?""",
+        (f"%{norm}%", f"%{q.strip().lower()}%", limit),
+    ).fetchall()
+
+    today = date.today().isoformat()
+    out = []
+    for r in rows:
+        last = conn.execute(
+            """SELECT match_date, tournament FROM matches
+               WHERE winner_id = :pid OR loser_id = :pid
+               ORDER BY match_date DESC LIMIT 1""",
+            {"pid": r["player_id"]},
+        ).fetchone()
+        n_matches = conn.execute(
+            """SELECT COUNT(*) c FROM matches
+               WHERE winner_id = :pid OR loser_id = :pid""",
+            {"pid": r["player_id"]},
+        ).fetchone()["c"]
+        out.append({
+            "id": r["player_id"],
+            "name": r["full_name"],
+            "tour": r["tour"],
+            "rank": latest_known_rank(conn, r["player_id"], today),
+            "last_match": last["match_date"] if last else None,
+            "last_event": last["tournament"] if last else None,
+            "matches": n_matches,
+        })
+    # most active first -- the player you meant is usually the busier one
+    out.sort(key=lambda x: -x["matches"])
+    return {"players": out}
 
 
 @app.get("/health")
@@ -117,8 +198,33 @@ def player(name: str, as_of: str | None = None):
     return {"player_id": pid, "name": full, **form}
 
 
+def latest_known_rank(conn, player_id: str, as_of: str) -> int | None:
+    """
+    Most recent rank we have for a player.
+
+    Prefers the versioned rankings table, but falls back to the rank recorded
+    on their latest match. Tennis-Data stores rank per match rather than as
+    weekly snapshots, so for that source the rankings table is empty and this
+    fallback is the only thing that works.
+    """
+    from model.features import rank_as_of
+    r = rank_as_of(conn, player_id, as_of)
+    if r:
+        return r
+    row = conn.execute(
+        """SELECT CASE WHEN winner_id = :pid THEN winner_rank ELSE loser_rank END AS rk
+           FROM matches
+           WHERE (winner_id = :pid OR loser_id = :pid) AND match_date < :as_of
+             AND CASE WHEN winner_id = :pid THEN winner_rank ELSE loser_rank END IS NOT NULL
+           ORDER BY match_date DESC LIMIT 1""",
+        {"pid": player_id, "as_of": as_of},
+    ).fetchone()
+    return row["rk"] if row else None
+
+
 def _predict_core(p1: str, p2: str, surface: str | None = None,
-                  tour_level: str | None = None, as_of: str | None = None) -> Prediction:
+                  tour_level: str | None = None, as_of: str | None = None,
+                  best_of: int | None = None, court: str | None = None) -> Prediction:
     """
     Plain-Python prediction logic.
 
@@ -133,7 +239,8 @@ def _predict_core(p1: str, p2: str, surface: str | None = None,
     if id1 == id2:
         raise HTTPException(400, "p1 and p2 are the same player")
 
-    fb = build_features(conn, id1, id2, surface, as_of, tour_level)
+    fb = build_features(conn, id1, id2, surface, as_of, tour_level,
+                        best_of, court)
     meta = fb["meta"]
 
     # Refuse rather than guess. A confident number built on default features is
@@ -152,20 +259,51 @@ def _predict_core(p1: str, p2: str, surface: str | None = None,
     p = float(predict_calibrated(m["model"], x)[0])
 
     warnings, confidence = [], "high"
-    if meta["p1_stale"] or meta["p2_stale"]:
-        stale = [n for n, s in ((name1, meta["p1_stale"]), (name2, meta["p2_stale"])) if s]
-        warnings.append(f"stale form data: {', '.join(stale)}")
-        confidence = "low"
+
+    for who, tier, days, stretched, frm, to in (
+        (name1, meta["p1_stale_tier"], meta["p1_days_since"],
+         meta["p1_window_stretched"], meta["p1_form_from"], meta["p1_form_to"]),
+        (name2, meta["p2_stale_tier"], meta["p2_days_since"],
+         meta["p2_window_stretched"], meta["p2_form_from"], meta["p2_form_to"]),
+    ):
+        # A long gap is not the same as a slightly old record. Say which.
+        if tier == "hard":
+            warnings.append(
+                f"{who} hasn't played in {days} days — form from before a long "
+                f"break may not carry over")
+            confidence = "low"
+        elif tier == "soft":
+            warnings.append(f"{who}'s last match was {days} days ago")
+            if confidence == "high":
+                confidence = "medium"
+        if stretched and frm and to:
+            warnings.append(
+                f"{who}'s last 10 matches span {frm} to {to} — a thin schedule, "
+                f"so this is less 'recent form' than it looks")
+            confidence = "low"
+
     if fb["features"]["min_season_matches"] < 10:
         warnings.append("thin season history for at least one player")
         confidence = "low"
     if fb["features"]["min_surface_n"] < 5:
         warnings.append(f"limited {surface or 'surface'} sample")
-        confidence = "medium" if confidence == "high" else confidence
-    if not meta["p1_rank"] or not meta["p2_rank"]:
+        if confidence == "high":
+            confidence = "medium"
+    r1 = meta["p1_rank"] or latest_known_rank(conn, id1, as_of)
+    r2 = meta["p2_rank"] or latest_known_rank(conn, id2, as_of)
+
+    if not r1 or not r2:
         warnings.append("missing ranking for at least one player")
 
+    from model.explain import explain, side_by_side
+    try:
+        expl = explain(m["model"], fb["features"])
+        comp = side_by_side(conn, id1, id2, surface, as_of)
+    except Exception:
+        expl, comp = None, None       # explanation is a nicety, never fatal
+
     return Prediction(
+        explanation=expl, comparison=comp,
         p1=name1, p2=name2, surface=surface, as_of=as_of,
         p1_win_probability=round(p, 4),
         fair_odds_p1=round(1 / p, 3) if p > 0 else 999.0,
@@ -175,7 +313,15 @@ def _predict_core(p1: str, p2: str, surface: str | None = None,
         freshness={
             "p1_days_since_last_match": meta["p1_days_since"],
             "p2_days_since_last_match": meta["p2_days_since"],
-            "p1_rank": meta["p1_rank"], "p2_rank": meta["p2_rank"],
+            "p1_form_span": f'{meta["p1_form_from"]} to {meta["p1_form_to"]}'
+                            if meta["p1_form_from"] else None,
+            "p2_form_span": f'{meta["p2_form_from"]} to {meta["p2_form_to"]}'
+                            if meta["p2_form_from"] else None,
+            "p1_rank": r1, "p2_rank": r2,
+            "p1_elo": meta.get("p1_elo"), "p2_elo": meta.get("p2_elo"),
+            "p1_elo_surface": meta.get("p1_elo_surface"),
+            "p2_elo_surface": meta.get("p2_elo_surface"),
+            "serve_stats_available": meta.get("serve_stats_available"),
         },
     )
 
@@ -187,8 +333,10 @@ def predict(
     surface: str | None = Query(None, description="Hard | Clay | Grass"),
     tour_level: str | None = Query(None, description="G|M|A|C"),
     as_of: str | None = Query(None, description="ISO date; defaults to today"),
+    best_of: int | None = Query(None, description="3 or 5"),
+    court: str | None = Query(None, description="Indoor or Outdoor"),
 ):
-    return _predict_core(p1, p2, surface, tour_level, as_of)
+    return _predict_core(p1, p2, surface, tour_level, as_of, best_of, court)
 
 
 @app.get("/edge")

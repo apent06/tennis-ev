@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tennis Edge Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ------------------------------------------------------------------
+     Slate navy ground, bone ink, copper for the market. Cool ground with a
+     single warm accent -- the two stay distinct at any size, and the warm
+     mark always means the market is talking.
+     ------------------------------------------------------------------ */
+  :root {
+    --ground:    #141D26;
+    --panel:     #1D2731;
+    --band:      #1A242D;
+    --ink:       #EAF0F3;
+    --ink-soft:  #9FB0BC;
+    --ink-faint: #6E8391;
+    --rule:      rgba(234,240,243,.16);
+    --rule-firm: rgba(234,240,243,.55);
+    --spot:      #D2764E;
+    --spot-ink:  #E08F6A;
+    --spot-pale: rgba(210,118,78,.15);
+  }
+
+  * { box-sizing: border-box; }
+  html { background: var(--ground); }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet { max-width: 820px; margin: 0 auto; padding: 0 28px 110px; }
+
+  /* ---------- masthead ---------- */
+  header { padding: 60px 0 0; }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--ink-faint);
+    display: flex; justify-content: space-between;
+    padding-bottom: 11px; border-bottom: 1px solid var(--rule);
+  }
+
+  h1 {
+    font-family: 'Archivo', sans-serif; font-weight: 700;
+    font-size: clamp(38px, 7.4vw, 62px);
+    line-height: 1.0; letter-spacing: -.025em; text-transform: uppercase;
+    margin: 22px 0 0;
+  }
+
+  .deck {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 0 14px;
+    font-family: 'Archivo', sans-serif; font-weight: 600;
+    font-size: clamp(16px, 2.2vw, 20px);
+    margin: 18px 0 0;
+  }
+  .deck .ours   { color: var(--ink); }
+  .deck .theirs { color: var(--spot-ink); }
+  /* the connective is a hinge, not a headline: small, spaced, with a rule
+     either side so the two lines read as being weighed against each other */
+  .deck .vs {
+    display: flex; align-items: center; gap: 9px;
+    font-family: 'IBM Plex Mono', monospace; font-weight: 400;
+    font-size: 9.5px; letter-spacing: .2em; text-transform: uppercase;
+    color: var(--ink-faint); white-space: nowrap;
+  }
+  .deck .vs::before, .deck .vs::after {
+    content: ''; width: 16px; height: 1px; background: var(--rule);
+  }
+
+  .rule-heavy { height: 3px; background: var(--rule-firm); margin: 34px 0 0; }
+  .rule-hair  { height: 1px; background: var(--rule); margin: 3px 0 0; }
+
+  /* ---------- explainer ---------- */
+  details.how { margin-top: 22px; }
+  .how summary {
+    cursor: pointer; list-style: none;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--spot-ink); padding: 5px 0;
+  }
+  .how summary::-webkit-details-marker { display: none; }
+  .how summary::before { content: '[+] '; }
+  .how[open] summary::before { content: '[\2212] '; }
+  .howbody { max-width: 64ch; font-size: 15px; color: var(--ink-soft); padding: 8px 0 2px; }
+  .howbody p { margin: 0 0 13px; }
+  .howbody strong { color: var(--ink); }
+  .howbody dl { margin: 0 0 14px; }
+  .howbody dt {
+    font-family: 'Archivo', sans-serif; font-weight: 600;
+    font-size: 15px; color: var(--ink); margin-top: 12px;
+  }
+  .howbody dd { margin: 2px 0 0; }
+  .howfoot { border-left: 3px solid var(--spot); padding-left: 14px; font-size: 14.5px; }
+
+  /* ---------- form ---------- */
+  form { padding-top: 34px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 26px; }
+  .field { position: relative; display: flex; flex-direction: column; gap: 6px; }
+  .field.span { grid-column: 1 / -1; }
+
+  label, .lab {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px; letter-spacing: .17em; text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  input, select {
+    background: var(--panel); border: 1px solid var(--rule);
+    border-bottom: 2px solid var(--rule-firm); border-radius: 0;
+    color: var(--ink); padding: 11px 12px;
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 16px; width: 100%;
+  }
+  input:focus, select:focus { outline: 2px solid var(--spot); outline-offset: 1px; }
+  input::placeholder { color: var(--ink-faint); }
+  select option { background: var(--panel); color: var(--ink); }
+  .hint { font-size: 12.5px; color: var(--ink-faint); }
+
+  .ac {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 30;
+    background: var(--panel); border: 1px solid var(--rule-firm); border-top: none;
+    max-height: 250px; overflow-y: auto;
+    box-shadow: 3px 3px 0 rgba(22,33,28,.10);
+  }
+  .ac div {
+    padding: 8px 12px; cursor: pointer;
+    display: flex; flex-direction: column; gap: 1px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .ac div:last-child { border-bottom: none; }
+  .ac div:hover, .ac div.on { background: var(--band); }
+  .ac div:hover .acname, .ac div.on .acname { color: var(--spot-ink); }
+  .acname { font-weight: 600; font-size: 15px; }
+  .acmeta { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--ink-soft); }
+
+  .pricehead { display: flex; align-items: center; justify-content: space-between;
+               gap: 12px; flex-wrap: wrap; }
+  .seg { display: flex; border: 1px solid var(--rule-firm); }
+  .seg button {
+    margin: 0; width: auto; border: 0; background: transparent;
+    color: var(--ink-soft); padding: 5px 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px; letter-spacing: .13em; text-transform: uppercase; cursor: pointer;
+  }
+  .seg button + button { border-left: 1px solid var(--rule-firm); }
+  .seg button.on { background: var(--ink); color: var(--ground); }
+
+  .odds-row { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+
+  button#go {
+    margin-top: 30px; width: 100%;
+    background: var(--ink); color: var(--ground); border: 0; padding: 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px; letter-spacing: .26em; text-transform: uppercase; cursor: pointer;
+  }
+  button#go:hover { background: var(--spot); color: var(--ground); }
+  button#go:disabled { opacity: .4; cursor: default; }
+
+  /* ---------- result ---------- */
+  #out { margin-top: 52px; }
+
+  .verdict {
+    display: grid; grid-template-columns: 1fr auto 1fr;
+    align-items: end; gap: 16px; padding-bottom: 16px;
+  }
+  .side h2 {
+    font-family: 'Archivo', sans-serif; font-weight: 600;
+    font-size: clamp(19px, 3vw, 25px); margin: 0; line-height: 1.1;
+  }
+  .side.two { text-align: right; }
+  .figure {
+    font-family: 'IBM Plex Mono', monospace; font-weight: 700;
+    font-size: clamp(34px, 6.5vw, 50px); line-height: 1;
+    margin-top: 6px; letter-spacing: -.03em;
+  }
+  .versus {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10.5px;
+    letter-spacing: .2em; color: var(--ink-faint); padding-bottom: 12px;
+  }
+
+  /* --- signature: the reckoning scale --------------------------------
+     A ruled measuring instrument, not a progress bar. Major ticks every
+     10 points, minor every 2. Two needles: model in black, market in red.
+     The interval between them is the edge, hatched.
+     ------------------------------------------------------------------ */
+  .scale { position: relative; margin: 6px 0 0; padding: 52px 0 36px; }
+  .scale-rail { position: relative; height: 46px; border: 1px solid var(--rule-firm);
+                background: var(--panel); overflow: hidden; }
+  .ticks { position: absolute; inset: 0; }
+  .tick { position: absolute; top: 0; width: 1px; background: rgba(234,240,243,.26); }
+  .tick.minor { height: 8px; }
+  .tick.major { height: 15px; background: rgba(234,240,243,.55); }
+  .tickno {
+    position: absolute; top: 18px; transform: translateX(-50%);
+    font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; color: var(--ink-faint);
+  }
+  .hatch {
+    position: absolute; top: 0; bottom: 0;
+    background: repeating-linear-gradient(45deg,
+      transparent 0 4px, rgba(210,118,78,.28) 4px 8px);
+    border-left: 1px solid var(--spot); border-right: 1px solid var(--spot);
+  }
+  /* anchored to the rail (52px down, 46px tall), overhanging 8px each side */
+  .needle { position: absolute; top: 44px; bottom: 28px; width: 2px;
+            transition: left .45s cubic-bezier(.22,.9,.28,1); }
+  .needle.model  { background: var(--ink); }
+  .needle.market { background: var(--spot); }
+  .needle b {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+    letter-spacing: .1em; text-transform: uppercase; white-space: nowrap;
+    padding: 0 3px; background: var(--ground);
+  }
+  .needle.model b  { top: -17px; color: var(--ink); }
+  .needle.market b { bottom: -17px; color: var(--spot-ink); }
+  .edgetag {
+    position: absolute; top: 4px; transform: translateX(-50%);
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
+    color: var(--spot-ink); white-space: nowrap;
+  }
+  @media (prefers-reduced-motion: reduce) { .needle { transition: none; } }
+
+  /* ---------- ledger tables ---------- */
+  .ledger { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 15px; }
+  .ledger th {
+    font-family: 'IBM Plex Mono', monospace; font-weight: 400;
+    font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink-soft); text-align: left;
+    padding: 7px 10px; border-bottom: 2px solid var(--rule-firm);
+  }
+  .ledger th.r, .ledger td.r { text-align: right; }
+  .ledger td { padding: 8px 10px; border-bottom: 1px solid var(--rule); }
+  .ledger tbody tr:nth-child(odd) { background: var(--band); }
+  .ledger td.lab-cell { color: var(--ink-soft); }
+  .ledger td.num {
+    font-family: 'IBM Plex Mono', monospace; font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .pos { color: var(--ink); font-weight: 700; }
+  .neg { color: var(--spot-ink); font-weight: 700; }
+
+  .secttl {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 44px 0 0; padding-top: 16px; border-top: 3px solid var(--rule-firm);
+  }
+
+  /* ---------- contributions ---------- */
+  .contribs { margin-top: 16px; }
+  .crow {
+    display: grid;
+    grid-template-columns: minmax(150px,1.5fr) 1fr 66px minmax(74px,.85fr);
+    align-items: center; gap: 12px; padding: 7px 10px; font-size: 14.5px;
+  }
+  .crow:nth-child(odd) { background: var(--band); }
+  .cbarwrap { position: relative; height: 9px; background: var(--panel); border: 1px solid var(--rule); }
+  .cbar { position: absolute; top: 0; bottom: 0; left: 0; }
+  .cbar.toP1 { background: var(--ink); }
+  .cbar.toP2 { background: var(--spot); }
+  .cval { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+          text-align: right; font-variant-numeric: tabular-nums; }
+  .cval.toP1 { color: var(--ink); font-weight: 700; }
+  .cval.toP2 { color: var(--spot-ink); font-weight: 700; }
+  .cwho { font-size: 12.5px; color: var(--ink-soft); text-align: right;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cnote { font-size: 13px; color: var(--ink-faint); margin-top: 14px;
+           max-width: 62ch; font-style: italic; }
+
+  /* ---------- notices ---------- */
+  .flag {
+    margin-top: 26px; padding: 14px 16px;
+    border: 1px solid var(--spot); background: var(--spot-pale); font-size: 14.5px;
+  }
+  .flag.soft { border-color: var(--rule); background: var(--band); }
+  .flag h4 {
+    margin: 0 0 6px; font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--spot-ink);
+  }
+  .flag.soft h4 { color: var(--ink-soft); }
+  .flag ul { margin: 0; padding-left: 18px; }
+  .flag li { margin: 2px 0; }
+
+  .err { border: 1px solid var(--spot); background: var(--spot-pale);
+         padding: 15px 17px; font-size: 15px; }
+  .err b { color: var(--spot-ink); }
+  .err p { margin: 9px 0 11px; }
+  .cands { display: flex; flex-direction: column; gap: 7px; }
+  .cand {
+    width: 100%; text-align: left; background: var(--panel);
+    border: 1px solid var(--rule-firm); color: var(--ink);
+    padding: 9px 12px; cursor: pointer;
+    display: flex; flex-direction: column; gap: 1px;
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 15px;
+  }
+  .cand:hover { background: var(--band); }
+
+  .loading {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    letter-spacing: .2em; text-transform: uppercase; color: var(--ink-soft);
+  }
+
+  @media (max-width: 640px) {
+    .grid, .odds-row { grid-template-columns: 1fr; }
+    .verdict { grid-template-columns: 1fr; gap: 4px; }
+    .side.two { text-align: left; }
+    .versus { padding: 6px 0; }
+    .crow { grid-template-columns: 1fr 58px;
+            grid-template-areas: 'label val' 'bar bar'; row-gap: 4px; }
+    .clabel { grid-area: label; }
+    .cval { grid-area: val; }
+    .cbarwrap { grid-area: bar; }
+    .cwho { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <header>
+    <div class="eyebrow">
+      <span>ATP &middot; WTA</span>
+      <span id="stamp">&mdash;</span>
+    </div>
+
+    <h1>Tennis Edge<br>Calculator</h1>
+
+    <p class="deck">
+      <span class="ours">Our model's line</span><span class="vs">measured against</span><span class="theirs">the market's line</span>
+    </p>
+
+    <div class="rule-heavy"></div>
+    <div class="rule-hair"></div>
+
+    <details class="how">
+      <summary>How the number is worked out</summary>
+      <div class="howbody">
+        <p>
+          For each player the model reads only matches played <strong>before</strong>
+          the date being predicted, then sets the two against each other on four
+          counts:
+        </p>
+        <dl>
+          <dt>Recent form</dt>
+          <dd>Win rate over the last ten and last five matches, days since they
+              last played, and how busy the past fortnight has been.</dd>
+
+          <dt>Opponent quality</dt>
+          <dd>Wins weighted by who they came against — beating a top-ten player
+              counts roughly six times a win over someone outside the top 250,
+              and losing to a low-ranked player costs more than losing to a
+              seed. Thin records are pulled toward even, so a 3–0 run isn't read
+              as unbeatable.</dd>
+
+          <dt>Surface</dt>
+          <dd>Win rate on this surface over the past year, and the
+              opponent-quality version of the same figure.</dd>
+
+          <dt>Head-to-head and context</dt>
+          <dd>Previous meetings weighted by how recent they were, plus season
+              win rate, ranking gap and retirement rate.</dd>
+        </dl>
+        <p>
+          Those comparisons feed a gradient-boosted classifier trained on 24,000
+          ATP and WTA matches, then calibrated against real outcomes — a stated
+          60% means that player won about 60% of the time in testing.
+        </p>
+        <p class="howfoot">
+          Ranking is one input among eighteen, not the starting point. Sportsbook
+          prices are never fed in as a feature; they're only used afterwards for
+          comparison. Backtesting across 11,817 matches found the model well
+          calibrated but unable to beat closing odds.
+        </p>
+      </div>
+    </details>
+  </header>
+
+  <form id="f" autocomplete="off">
+    <div class="grid">
+      <div class="field">
+        <label for="p1">Player one</label>
+        <input id="p1" placeholder="Alcaraz C." required>
+        <span class="hint">Enter Last Name</span>
+      </div>
+      <div class="field">
+        <label for="p2">Player two</label>
+        <input id="p2" placeholder="Sinner J." required>
+        <span class="hint">Start typing to search</span>
+      </div>
+      <div class="field">
+        <label for="surface">Surface</label>
+        <select id="surface">
+          <option value="Hard" selected>Hard</option>
+          <option value="Clay">Clay</option>
+          <option value="Grass">Grass</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="level">Level</label>
+        <select id="level">
+          <option value="">Any</option>
+          <option value="G">Grand Slam</option>
+          <option value="M">Masters 1000</option>
+          <option value="A" selected>ATP/WTA 250–500</option>
+        </select>
+      </div>
+      <div class="field span">
+        <div class="pricehead">
+          <span class="lab">Price offered (optional)</span>
+          <div class="seg" role="group" aria-label="Odds format">
+            <button type="button" class="on" data-fmt="dec">Decimal</button>
+            <button type="button" data-fmt="pct">Percentage</button>
+          </div>
+        </div>
+        <div class="odds-row">
+          <input id="o1" type="number" step="0.01" placeholder="e.g. 2.10">
+          <input id="o2" type="number" step="0.01" placeholder="e.g. 1.75">
+        </div>
+        <span class="hint" id="oddshint">Leave blank for probability only</span>
+      </div>
+    </div>
+    <button type="submit" id="go">Calculate</button>
+  </form>
+
+  <div id="out"></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const pct = x => (x * 100).toFixed(1) + '%';
+const esc = s => String(s).replace(/[&<>"]/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+$('stamp').textContent = new Date().toISOString().slice(0, 10);
+
+/* A pick from the dropdown carries the player's id. Two players can share a
+   display name -- the source stores 'Wong C.' with no first name -- so the id
+   is the only unambiguous way to say which is meant. Typing clears it. */
+const chosen = { p1: null, p2: null };
+
+/* ---------- autocomplete ---------- */
+function attachAC(input) {
+  let box = null, items = [], idx = -1;
+  const close = () => { if (box) { box.remove(); box = null; } idx = -1; };
+
+  input.addEventListener('input', async () => {
+    chosen[input.id] = null;
+    const q = input.value.trim();
+    if (q.length < 2) return close();
+    let rows = [];
+    try {
+      const r = await fetch('/players?q=' + encodeURIComponent(q));
+      rows = (await r.json()).players || [];
+    } catch { return close(); }
+    close();
+    if (!rows.length) return;
+    items = rows;
+    box = document.createElement('div');
+    box.className = 'ac';
+    rows.forEach(x => {
+      const d = document.createElement('div');
+      const bits = [];
+      if (x.tour) bits.push(x.tour);
+      if (x.rank) bits.push('No. ' + x.rank);
+      bits.push(x.matches + (x.matches === 1 ? ' match' : ' matches'));
+      if (x.last_match) bits.push('last ' + x.last_match);
+      d.innerHTML = '<span class="acname">' + esc(x.name) + '</span>' +
+                    '<span class="acmeta">' + esc(bits.join('  \u00b7  ')) + '</span>';
+      d.onmousedown = e => {
+        e.preventDefault();
+        input.value = x.name;
+        chosen[input.id] = x.id;
+        close();
+      };
+      box.appendChild(d);
+    });
+    input.parentElement.appendChild(box);
+  });
+
+  input.addEventListener('keydown', e => {
+    if (!box) return;
+    const opts = [...box.children];
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      idx += e.key === 'ArrowDown' ? 1 : -1;
+      if (idx < 0) idx = opts.length - 1;
+      if (idx >= opts.length) idx = 0;
+      opts.forEach(o => o.classList.remove('on'));
+      opts[idx].classList.add('on');
+    } else if (e.key === 'Enter' && idx >= 0) {
+      e.preventDefault();
+      input.value = items[idx].name;
+      chosen[input.id] = items[idx].id;
+      close();
+    } else if (e.key === 'Escape') close();
+  });
+
+  input.addEventListener('blur', () => setTimeout(close, 120));
+}
+attachAC($('p1'));
+attachAC($('p2'));
+
+/* ---------- odds format ---------- */
+let fmt = 'dec';
+const FMT = {
+  dec: { hint: 'Decimal odds, e.g. 2.10 and 1.75',
+         ph: ['e.g. 2.10', 'e.g. 1.75'], step: '0.01' },
+  pct: { hint: "Each player's chance as a percentage, e.g. 48 and 55. " +
+               'Books usually total over 100 — that surplus is their margin, ' +
+               'and it gets removed before the comparison.',
+         ph: ['e.g. 48', 'e.g. 55'], step: '0.1' },
+};
+
+document.querySelectorAll('.seg button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.seg button').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    fmt = btn.dataset.fmt;
+    const c = FMT[fmt];
+    $('oddshint').textContent = c.hint;
+    $('o1').placeholder = c.ph[0];
+    $('o2').placeholder = c.ph[1];
+    $('o1').step = c.step; $('o2').step = c.step;
+    $('o1').value = ''; $('o2').value = '';
+  });
+});
+
+function toDecimal(v) {
+  if (v === '' || v === null || isNaN(v)) return null;
+  const n = parseFloat(v);
+  if (fmt === 'dec') return n > 1 ? n : null;
+  if (fmt === 'pct') {
+    const p = n > 1 ? n / 100 : n;
+    return (p > 0 && p < 1) ? 1 / p : null;
+  }
+  return null;
+}
+
+/* ---------- submit ---------- */
+$('f').addEventListener('submit', async e => {
+  e.preventDefault();
+  const out = $('out'), go = $('go');
+  out.innerHTML = '<p class="loading">Calculating&hellip;</p>';
+  go.disabled = true;
+
+  const p1 = chosen.p1 || $('p1').value.trim();
+  const p2 = chosen.p2 || $('p2').value.trim();
+  const surface = $('surface').value, level = $('level').value;
+  const o1 = toDecimal($('o1').value), o2 = toDecimal($('o2').value);
+  const anyTyped = $('o1').value.trim() !== '' || $('o2').value.trim() !== '';
+  const haveOdds = o1 !== null && o2 !== null;
+
+  if (anyTyped && !haveOdds) {
+    out.innerHTML = '<div class="err"><b>Check the prices.</b> ' +
+      'Enter both, in the format selected above.</div>';
+    go.disabled = false;
+    return;
+  }
+
+  const q = new URLSearchParams({ p1, p2, surface });
+  if (level) q.set('tour_level', level);
+
+  try {
+    let data, edge = null;
+    if (haveOdds) {
+      const q2 = new URLSearchParams(q);
+      q2.set('odds_p1', o1); q2.set('odds_p2', o2); q2.set('bankroll', 1000);
+      const r = await fetch('/edge?' + q2);
+      const j = await r.json();
+      if (!r.ok) return fail(j);
+      edge = j;
+      const rp = await fetch('/predict?' + q);
+      data = await rp.json();
+      if (!rp.ok) return fail(data);
+    } else {
+      const r = await fetch('/predict?' + q);
+      data = await r.json();
+      if (!r.ok) return fail(data);
+    }
+    render(data, edge);
+  } catch (err) {
+    $('out').innerHTML = '<div class="err"><b>The request did not go through.</b> ' +
+      'Check the server is still running.</div>';
+  } finally {
+    go.disabled = false;
+  }
+});
+
+function fail(j) {
+  const d = j.detail || {};
+  let msg = typeof d === 'string' ? d : (d.error || 'Something went wrong.');
+  let extra = '';
+  if (d.did_you_mean && d.did_you_mean.length) {
+    extra = '<p>Did you mean: ' +
+      d.did_you_mean.map(x => esc(x.full_name)).join(', ') + '</p>';
+  }
+  if (d.players_without_data) {
+    extra = '<p>No usable match history for ' +
+      d.players_without_data.map(esc).join(' or ') +
+      '. The model returns nothing rather than guessing from defaults.</p>';
+  }
+  if (d.candidates && d.candidates.length) {
+    extra = '<p>' + esc(d.detail || 'Choose which one you meant:') + '</p>' +
+      '<div class="cands">' + d.candidates.map(c => {
+        const meta = [c.tour, c.rank ? 'No. ' + c.rank : null,
+                      c.matches + ' matches'].filter(Boolean).join('  \u00b7  ');
+        return '<button type="button" class="cand" data-id="' + esc(c.id) + '">' +
+               '<span class="acname">' + esc(c.full_name) + '</span>' +
+               '<span class="acmeta">' + esc(meta) + '</span></button>';
+      }).join('') + '</div>';
+  }
+  $('out').innerHTML = '<div class="err"><b>' + esc(msg) + '</b>' + extra + '</div>';
+  $('go').disabled = false;
+
+  document.querySelectorAll('.cand').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const name = btn.querySelector('.acname').textContent.trim();
+      if ($('p1').value.trim() === name) chosen.p1 = id;
+      else if ($('p2').value.trim() === name) chosen.p2 = id;
+      else { chosen.p1 = id; $('p1').value = name; }
+      $('f').requestSubmit();
+    });
+  });
+}
+
+/* the reckoning scale: ruler ticks, two needles, hatched interval */
+function buildScale(p, marketP) {
+  let ticks = '';
+  for (let v = 0; v <= 100; v += 2) {
+    const major = v % 10 === 0;
+    ticks += '<span class="tick ' + (major ? 'major' : 'minor') +
+             '" style="left:' + v + '%"></span>';
+    if (major && v > 0 && v < 100) {
+      ticks += '<span class="tickno" style="left:' + v + '%">' + v + '</span>';
+    }
+  }
+
+  const edgePos = v => v > 90 ? 'left:auto;right:0;transform:none'
+                     : v < 10 ? 'left:0;transform:none' : '';
+
+  let hatch = '', tag = '', needles = '';
+  if (marketP !== null) {
+    const lo = Math.min(p, marketP) * 100, hi = Math.max(p, marketP) * 100;
+    hatch = '<span class="hatch" style="left:' + lo + '%;width:' + (hi - lo) + '%"></span>';
+    const mp = marketP * 100;
+    needles += '<span class="needle market" style="left:' + mp + '%">' +
+               '<b style="' + edgePos(mp) + '">Market ' + pct(marketP) + '</b></span>';
+    const gap = (p - marketP) * 100;
+    tag = '<span class="edgetag" style="left:' + ((lo + hi) / 2) + '%">' +
+          (gap > 0 ? '+' : '') + gap.toFixed(1) + ' pts</span>';
+  }
+  needles += '<span class="needle model" style="left:' + (p * 100) + '%">' +
+             '<b style="' + edgePos(p * 100) + '">Model ' + pct(p) + '</b></span>';
+
+  return '<div class="scale">' + tag +
+         '<div class="scale-rail"><div class="ticks">' + ticks + '</div>' + hatch + '</div>' +
+         needles + '</div>';
+}
+
+function render(d, edge) {
+  const p = d.p1_win_probability;
+  let marketP = null;
+  if (edge) {
+    const side = edge.sides.find(s => s.player === d.p1);
+    if (side) marketP = side.market_implied_fair;
+  }
+
+  let html = '<div class="verdict">' +
+    '<div class="side one"><h2>' + esc(d.p1) + '</h2>' +
+      '<div class="figure">' + pct(p) + '</div></div>' +
+    '<div class="versus">VS</div>' +
+    '<div class="side two"><h2>' + esc(d.p2) + '</h2>' +
+      '<div class="figure">' + pct(1 - p) + '</div></div>' +
+    '</div>';
+
+  html += buildScale(p, marketP);
+
+  html += '<table class="ledger"><thead><tr><th></th>' +
+    '<th class="r">' + esc(d.p1) + '</th><th class="r">' + esc(d.p2) + '</th>' +
+    '</tr></thead><tbody>' +
+    '<tr><td class="lab-cell">Fair odds by our model</td>' +
+      '<td class="num r">' + d.fair_odds_p1 + '</td>' +
+      '<td class="num r">' + d.fair_odds_p2 + '</td></tr>';
+
+  if (edge) {
+    const a = edge.sides[0], b = edge.sides[1];
+    const cls = v => v > 0 ? 'num r pos' : 'num r neg';
+    html += '<tr><td class="lab-cell">Edge against the market</td>' +
+       '<td class="' + cls(a.edge) + '">' + (a.edge > 0 ? '+' : '') +
+       (a.edge * 100).toFixed(1) + '%</td>' +
+       '<td class="' + cls(b.edge) + '">' + (b.edge > 0 ? '+' : '') +
+       (b.edge * 100).toFixed(1) + '%</td></tr>' +
+      '<tr><td class="lab-cell">Quarter-Kelly stake per $1,000</td>' +
+       '<td class="num r">$' + a.recommended_stake.toFixed(0) + '</td>' +
+       '<td class="num r">$' + b.recommended_stake.toFixed(0) + '</td></tr>';
+  }
+
+  html += '<tr><td class="lab-cell">Days since last match</td>' +
+      '<td class="num r">' + (d.freshness.p1_days_since_last_match ?? '&mdash;') + '</td>' +
+      '<td class="num r">' + (d.freshness.p2_days_since_last_match ?? '&mdash;') + '</td></tr>' +
+    '<tr><td class="lab-cell">Span of last 10 matches</td>' +
+      '<td class="num r" style="font-size:11.5px">' + esc(d.freshness.p1_form_span ?? '—') + '</td>' +
+      '<td class="num r" style="font-size:11.5px">' + esc(d.freshness.p2_form_span ?? '—') + '</td></tr>' +
+    '<tr><td class="lab-cell">Ranking</td>' +
+      '<td class="num r">' + (d.freshness.p1_rank ?? '&mdash;') + '</td>' +
+      '<td class="num r">' + (d.freshness.p2_rank ?? '&mdash;') + '</td></tr>' +
+    '</tbody></table>';
+
+  const warns = d.warnings || [];
+  if (d.confidence !== 'high' || warns.length) {
+    html += '<div class="flag ' + (d.confidence === 'medium' ? 'soft' : '') + '">' +
+      '<h4>Confidence: ' + esc(d.confidence) + '</h4><ul>';
+    warns.forEach(w => html += '<li>' + esc(w) + '</li>');
+    if (!warns.length) html += '<li>Limited supporting data.</li>';
+    html += '</ul></div>';
+  }
+
+  if (d.explanation && d.explanation.contributions.length) {
+    const cs = d.explanation.contributions;
+    const max = Math.max(...cs.map(c => Math.abs(c.delta)));
+    html += '<h3 class="secttl">What moved this number</h3><div class="contribs">';
+    cs.forEach(c => {
+      const w = (Math.abs(c.delta) / max) * 100;
+      const toward = c.favours === 1 ? d.p1 : d.p2;
+      const cls = c.favours === 1 ? 'toP1' : 'toP2';
+      html += '<div class="crow">' +
+        '<span class="clabel">' + esc(c.label) + '</span>' +
+        '<span class="cbarwrap"><span class="cbar ' + cls +
+          '" style="width:' + w + '%"></span></span>' +
+        '<span class="cval ' + cls + '">' + (c.delta > 0 ? '+' : '') +
+          (c.delta * 100).toFixed(1) + '</span>' +
+        '<span class="cwho">' + esc(toward) + '</span>' +
+      '</div>';
+    });
+    html += '</div><p class="cnote">' + esc(d.explanation.note) + '</p>';
+  }
+
+  if (d.comparison && d.comparison.length) {
+    html += '<h3 class="secttl">The numbers behind it</h3>' +
+      '<table class="ledger"><thead><tr><th></th>' +
+        '<th class="r">' + esc(d.p1) + '</th>' +
+        '<th class="r">' + esc(d.p2) + '</th></tr></thead><tbody>';
+    d.comparison.forEach(r => {
+      html += '<tr><td class="lab-cell">' + esc(r.label) + '</td>' +
+        '<td class="num r">' + esc(r.p1) + '</td>' +
+        '<td class="num r">' + esc(r.p2) + '</td></tr>';
+    });
+    html += '</tbody></table>';
+  }
+
+  $('out').innerHTML = html;
+
+  // let the needles travel out from centre once laid out
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.querySelectorAll('.needle').forEach(n => {
+      const target = n.style.left;
+      n.style.left = '50%';
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => { n.style.left = target; }));
+    });
+  }
+}
+</script>
+</body>
+</html>
