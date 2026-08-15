@@ -207,8 +207,8 @@ upserts mean re-pulling costs nothing and catches the corrections.
 ## Tests
 
 ```
-tests/test_pipeline.py   idempotency, name matching, point-in-time ranks
-tests/test_model.py      leakage, symmetry, calibration bounds, dead features, Kelly
+tests/test_pipeline.py   27 tests: idempotency, name matching, point-in-time ranks
+tests/test_model.py      34 tests: leakage, symmetry, calibration bounds, dead features, Kelly
 ```
 
 These target bugs that don't crash, the ones that quietly give you a good-looking

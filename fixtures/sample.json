@@ -1,4 +1,4 @@
-﻿[
+[
   {"match_date":"2026-08-11","tour":"ATP","tour_level":"M","tournament":"Cincinnati Masters","round":"R32","surface":"Hard","winner_name":"R. Collignon","loser_name":"M. Navone","winner_rank":null,"loser_rank":null,"score":"6-4 3-6 7-5","retirement":false,"source_event_key":"991001","source_winner_id":"p_collignon","source_loser_id":"p_navone"},
   {"match_date":"2026-08-11","tour":"ATP","tour_level":"C","tournament":"Hamburg Challenger","round":"QF","surface":"Clay","winner_name":"A. Muller","loser_name":"B. Bonzi","winner_rank":null,"loser_rank":null,"score":"7-6 6-2","retirement":false,"source_event_key":"991002","source_winner_id":"p_muller","source_loser_id":"p_bonzi"},
   {"match_date":"2026-08-12","tour":"ATP","tour_level":"M","tournament":"Cincinnati Masters","round":"R16","surface":"Hard","winner_name":"R. Collignon","loser_name":"A. Muller","winner_rank":null,"loser_rank":null,"score":"6-3 6-4","retirement":false,"source_event_key":"991003","source_winner_id":"p_collignon","source_loser_id":"p_muller"}

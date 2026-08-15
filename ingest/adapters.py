@@ -186,7 +186,7 @@ class FixtureSource(MatchSource):
     name = "fixture"
 
     def __init__(self, path: str):
-        with open(path) as f:
+        with open(path, encoding="utf-8-sig") as f:
             self.rows = json.load(f)
 
     def fetch_day(self, day: date) -> list[dict]:
