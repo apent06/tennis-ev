@@ -43,7 +43,7 @@ disagrees most with the market should be its best bets. They're its worst
 instead, which tells me those disagreements are my model being wrong rather
 than the market being wrong.
 
-Full output in `results_2026-08-13.txt`.
+Full output in `results/results_2026-08-13.txt`.
 
 ## Quick start
 
