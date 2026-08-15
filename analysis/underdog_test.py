@@ -24,14 +24,20 @@ Run: python underdog_test.py
 """
 
 import sqlite3
-import sys
 from collections import defaultdict
 from datetime import date, timedelta
 
-sys.path.insert(0, ".")
-from model.features import player_features  # noqa: E402
+import os
+import sys
 
-DB = "tennis.db"
+# Resolve paths from the project root, not the caller's working directory, so
+# this runs the same whether invoked as `python analysis/x.py` or from inside
+# the folder.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+DB = os.path.join(ROOT, "tennis.db")
+
+from model.features import player_features  # noqa: E402
 MIN_MATCHES = 8          # need some history for fundamentals to mean anything
 MIN_SUBSET = 50          # below this, don't report a bucket
 

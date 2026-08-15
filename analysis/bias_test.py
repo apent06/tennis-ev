@@ -18,7 +18,16 @@ Run: python bias_test.py
 import sqlite3
 from collections import defaultdict
 
-DB = "tennis.db"
+import os
+import sys
+
+# Resolve paths from the project root, not the caller's working directory, so
+# this runs the same whether invoked as `python analysis/x.py` or from inside
+# the folder.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+DB = os.path.join(ROOT, "tennis.db")
+
 
 
 def devig(odds_w, odds_l):
