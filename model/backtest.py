@@ -1,7 +1,7 @@
 """
 Walk-forward backtest against closing odds.
 
-The honest framing: closing odds minus vig is a hard baseline. Most models that
+Closing odds minus vig is a hard baseline. Most models that
 reproduce public data land at or below it. The point of this file is to find out
 which side of that line you're on, and to be able to say so precisely.
 
@@ -9,7 +9,7 @@ What's measured:
   - calibration (are the probabilities real?)
   - Brier / log loss vs the market's own implied probabilities
   - ROI at various edge thresholds, with fractional Kelly sizing
-  - the same, split by tour level -- edges usually live at Challenger level
+  - the same, split by tour level, edges usually live at Challenger level
     if they live anywhere
 
 Walk-forward, never random split: train on everything before a cutoff, test on
@@ -135,7 +135,7 @@ def _market_comparison(conn, keys, p_arr, y_arr) -> dict:
         if not o or not o[0] or not o[1]:
             continue
         fair_w, _ = devig_two_way(o[0], o[1])
-        # our p is P(p1 wins); label 1 means p1 was the actual winner
+        # p is P(p1 wins); label 1 means p1 was the actual winner
         market_p1 = fair_w if yy == 1 else 1 - fair_w
         mp.append(p)
         mm.append(market_p1)
@@ -171,7 +171,7 @@ def _betting_sim(conn, keys, p_arr, y_arr, edge_threshold: float) -> dict:
         row = conn.execute("SELECT tour_level FROM matches WHERE match_key=?", (k,)).fetchone()
         level = row["tour_level"] if row else "?"
 
-        # which side do we think is value? label 1 = p1 won, so p1's price is
+        # which side is value? label 1 = p1 won, so p1's price is
         # winner_odds when yy==1 else loser_odds
         p1_odds = o[0] if yy == 1 else o[1]
         p2_odds = o[1] if yy == 1 else o[0]

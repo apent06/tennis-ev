@@ -1,16 +1,16 @@
 """
 Schema + upsert logic for the tennis match store.
 
-Design notes (the things worth defending in an interview):
+Design notes:
 
 1. `match_key` is a deterministic hash of (date, tour_level, sorted player names,
-   tournament slug). It lets us dedup the SAME match arriving from DIFFERENT
+   tournament slug). It lets me dedup the same match arriving from different
    sources (Sackmann vs live API) without trusting either source's own ID.
 
 2. `source_event_key` is the provider's own ID. Unique per (source, key). This
    is what makes re-pulling the same day idempotent.
 
-3. `first_seen_at` / `last_updated_at` / `ingested_at` exist so we can MEASURE
+3. `first_seen_at` / `last_updated_at` / `ingested_at` exist so I can measure
    ingestion lag per tour level instead of guessing at it. This is what turns
    "the data feels stale" into a number.
 
@@ -19,7 +19,7 @@ Design notes (the things worth defending in an interview):
    no join and no leakage.
 
 5. rankings are versioned with valid_from/valid_to. Never UPDATE a rank in
-   place -- that silently corrupts every historical backtest.
+   place, that silently corrupts every historical backtest.
 """
 
 import hashlib
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS matches (
     source              TEXT NOT NULL,
     source_event_key    TEXT,
 
-    match_date          TEXT NOT NULL,        -- ISO YYYY-MM-DD
+    match_date          TEXT NOT NULL,        -- ISO YYYY-mm-dd
     tour                TEXT,                 -- ATP / WTA
     tour_level          TEXT,                 -- G / M / A / C (challenger) / etc
     tournament          TEXT,
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS matches (
     loser_id            TEXT,
     winner_name         TEXT,
     loser_name          TEXT,
-    winner_rank         INTEGER,              -- rank AS OF this match
+    winner_rank         INTEGER,              -- rank AS of this match
     loser_rank          INTEGER,
     score               TEXT,
     retirement          INTEGER DEFAULT 0,
@@ -57,10 +57,10 @@ CREATE TABLE IF NOT EXISTS matches (
     l_games             INTEGER,
     w_sets              INTEGER,
     l_sets              INTEGER,
-    w_pts               INTEGER,              -- ranking POINTS at match time
+    w_pts               INTEGER,              -- ranking points at match time
     l_pts               INTEGER,
 
-    -- ratings as of BEFORE this match (filled by model/elo.py).
+    -- ratings as of before this match (filled by model/elo.py).
     -- Stored on the row so they are point-in-time correct with no join.
     w_elo               REAL,
     l_elo               REAL,
@@ -101,7 +101,7 @@ CREATE INDEX IF NOT EXISTS idx_matches_surface  ON matches(surface);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_matches_src_event
     ON matches(source, source_event_key) WHERE source_event_key IS NOT NULL;
 
--- Versioned ranking snapshots. valid_to IS NULL == currently in force.
+-- Versioned ranking snapshots. valid_to is NULL == currently in force.
 CREATE TABLE IF NOT EXISTS rankings (
     player_id       TEXT NOT NULL,
     tour            TEXT NOT NULL,
@@ -120,13 +120,13 @@ CREATE TABLE IF NOT EXISTS players (
     full_name   TEXT NOT NULL,
     norm_name   TEXT NOT NULL,
     tour        TEXT,
-    dob         TEXT,                 -- age is COMPUTED at match time, never stored
+    dob         TEXT,                 -- age is computed at match time, never stored
     country     TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_players_norm ON players(norm_name);
 
--- Maps a provider's player id onto our canonical player_id.
+-- Maps a provider's player id onto the canonical player_id.
 -- `reviewed` = a human confirmed it. Unreviewed low-confidence rows are the
 -- single most likely source of a silently-wrong prediction.
 CREATE TABLE IF NOT EXISTS player_crosswalk (
@@ -222,7 +222,7 @@ def normalize_name(name: str) -> str:
     s = s.lower()
     s = re.sub(r"[^a-z\s]", " ", s)
     tokens = [t for t in s.split() if t]
-    # Drop bare initials -- they carry no matching signal and hurt token overlap.
+    # Drop bare initials, they carry no matching signal and hurt token overlap.
     tokens = [t for t in tokens if len(t) > 1]
     return " ".join(sorted(tokens))
 
@@ -239,7 +239,7 @@ def make_match_key(match_date: str, tournament: str, name_a: str, name_b: str) -
     """
     Cross-source stable identity for a match.
 
-    Deliberately does NOT include round or score: those are the fields most
+    Deliberately does not include round or score: those are the fields most
     likely to be reported inconsistently (or amended after the fact), and a key
     that changes on amendment defeats the whole point of an upsert.
     """
@@ -285,7 +285,7 @@ ON CONFLICT(match_key, source) DO UPDATE SET
     w_pts            = COALESCE(excluded.w_pts, matches.w_pts),
     l_pts            = COALESCE(excluded.l_pts, matches.l_pts),
     ingested_at      = excluded.ingested_at,
-    -- only bump last_updated_at when something MEANINGFUL changed, so this
+    -- only bump last_updated_at when something meaningful changed, so this
     -- column stays a real change-detector rather than a re-run counter
     last_updated_at  = CASE
         WHEN matches.score IS NOT excluded.score
@@ -358,7 +358,7 @@ def upsert_ranking(
 ) -> None:
     """
     Close out the previous open snapshot, then open a new one. This is what
-    keeps historical backtests honest -- we can always ask 'what was this
+    keeps historical backtests honest, I can always ask 'what was this
     player's rank on date X' and get the answer as it was known THEN.
     """
     conn.execute(

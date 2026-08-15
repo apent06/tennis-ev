@@ -10,9 +10,9 @@ Feature ordering mirrors the analysis framework:
   2. opponent quality of those results
   3. surface-specific splits
   4. head-to-head, recency weighted
-  5. rank -- as a validator only, not a primary signal
+  5. rank, as a validator only, not a primary signal
 
-Closing odds are deliberately ABSENT. They live in a separate table and are used
+Closing odds are deliberately absent. They live in a separate table and are used
 only as a backtest benchmark. A model trained on market prices just learns to
 reproduce the market.
 """
@@ -69,14 +69,14 @@ def _tier_index(rank: int | None) -> int | None:
     return None
 
 
-PRIOR_STRENGTH = 1.0   # Beta(1,1) pseudo-counts -- shrinks thin records to 0.5
+PRIOR_STRENGTH = 1.0   # Beta(1,1) pseudo-counts, shrinks thin records to 0.5
 
 
 def quality_score(rows: list[dict]) -> float:
     """
     Opponent-quality-adjusted win rate, shrunk toward 0.5.
 
-    The naive version -- sum(weight * won) / sum(weight) -- looks right and is
+    The naive version, sum(weight * won) / sum(weight), looks right and is
     wrong: for an all-wins record the weight cancels, so beating a top-10 and
     beating a #300 both score exactly 1.0. The quality signal vanishes at
     precisely the moment it matters.
@@ -160,7 +160,7 @@ def serve_profile(conn: sqlite3.Connection, pid: str, as_of: str,
 
     Returns available=False when the columns are empty, which is the case for
     tennis-data.co.uk. Downstream emits neutral values and a flag rather than
-    zeros -- a player with no serve data is not a player who wins no service
+    zeros, a player with no serve data is not a player who wins no service
     points, and conflating those would be a serious feature bug.
     """
     start = (date.fromisoformat(as_of) - timedelta(days=window_days)).isoformat()
@@ -258,7 +258,7 @@ def player_features(conn: sqlite3.Connection, pid: str, surface: str | None,
         "season_win_rate": (sum(r["won"] for r in season) / len(season)) if season else 0.5,
         "load_14d": load_14d,
         "retire_rate": (sum(r["retirement"] for r in season) / len(season)) if season else 0.0,
-        # staleness -- carried through so serving can degrade confidence
+        # staleness, carried through so serving can degrade confidence
         "_stale_tier": tier,
         "_is_stale": tier in ("hard", "none"),
         "_form_window_days": window_days,
@@ -304,7 +304,7 @@ def rank_as_of(conn: sqlite3.Connection, pid: str, as_of: str) -> int | None:
 
     Prefers the versioned rankings table. Falls back to the rank recorded ON
     the player's most recent match row, because tennis-data.co.uk stores rank
-    per match rather than as weekly snapshots -- with that source the rankings
+    per match rather than as weekly snapshots, with that source the rankings
     table is empty and the primary lookup returns None for everyone.
 
     That failure is silent and severe: both players fall back to the same
@@ -340,8 +340,8 @@ def build_features(conn: sqlite3.Connection, p1: str, p2: str, surface: str | No
     """
     Full symmetric feature vector for (p1 vs p2).
 
-    Emits DIFFERENCES (p1 minus p2) rather than raw pairs so the model can't
-    learn "player listed first tends to win" -- there is no such signal, and a
+    Emits differences (p1 minus p2) rather than raw pairs so the model can't
+    learn "player listed first tends to win", there is no such signal, and a
     model that finds one is memorising your data ordering.
     """
     from .elo import BASE_RATING, as_of as elo_as_of, win_probability
@@ -442,11 +442,11 @@ FEATURE_NAMES = [
 ]
 
 # Value each feature takes when the two players are indistinguishable on it.
-# Used to attribute a prediction: neutralise one feature, re-predict, and the
+# Used to attribute a prediction: neutralize one feature, re-predict, and the
 # movement is what that feature was worth.
 #
-# Context features (sample sizes, tour level) have no neutral -- they describe
-# how much evidence there is, not who is favoured -- so they're excluded from
+# Context features (sample sizes, tour level) have no neutral, they describe
+# how much evidence there is, not who is favoured, so they're excluded from
 # attribution rather than given a fake baseline.
 NEUTRAL = {
     "d_form_10": 0.0, "d_form_5": 0.0,

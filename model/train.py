@@ -3,12 +3,12 @@ Model training.
 
 Two decisions that matter more than the algorithm choice:
 
-1. RANDOMIZED player order. If p1 is always the winner, the label is trivially
+1. randomized player order. If p1 is always the winner, the label is trivially
    predictable and the model learns nothing. Each match is emitted once with a
    coin-flip on which player is p1, and the label follows.
 
-2. ISOTONIC CALIBRATION on a held-out slice. A gradient booster's raw scores
-   are not probabilities. For EV you need probabilities -- a model that ranks
+2. isotonic calibration on a held-out slice. A gradient booster's raw scores
+   are not probabilities. For EV you need probabilities, a model that ranks
    well but is miscalibrated will size every bet wrong.
 
 Time-ordered splits throughout. Random k-fold on time-series data leaks the
@@ -49,7 +49,7 @@ def pick_calibration_method(n_calib: int) -> str:
 
 
 def predict_calibrated(model, X) -> np.ndarray:
-    """The ONLY way predictions should leave this codebase."""
+    """The only way predictions should leave this codebase."""
     p = model.predict_proba(X)[:, 1]
     return np.clip(p, PROB_FLOOR, PROB_CEIL)
 
@@ -59,7 +59,7 @@ def build_dataset(conn: sqlite3.Connection, start: str, end: str,
     """
     Materialize a training matrix over matches in [start, end).
 
-    Slow by design -- features are computed per match with as_of set to that
+    Slow by design, features are computed per match with as_of set to that
     match's date, which is the only way to guarantee no leakage. For a few tens
     of thousands of matches this is minutes, not hours. Cache the output.
     """
@@ -81,7 +81,7 @@ def build_dataset(conn: sqlite3.Connection, start: str, end: str,
         if verbose and i % 2000 == 0 and i:
             print(f"    {i}/{len(rows)}")
 
-        # p1 is a coin flip -- see docstring
+        # p1 is a coin flip, see docstring
         if rng.random() < 0.5:
             p1, p2, label = r["winner_id"], r["loser_id"], 1
         else:
@@ -120,7 +120,7 @@ def train(conn: sqlite3.Connection, start: str, end: str,
     print("  building dataset...")
     X, y, keys, dates = build_dataset(conn, start, end, seed=seed)
     if len(X) < 200:
-        raise ValueError(f"Only {len(X)} usable rows -- need more history before training.")
+        raise ValueError(f"Only {len(X)} usable rows. Need more history before training.")
 
     tr, cal, te = time_split(dates)
     print(f"  train={tr.stop - tr.start} calib={cal.stop - cal.start} test={te.stop - te.start}")
@@ -168,7 +168,7 @@ def calibration_table(y_true, p_pred, bins: int = 10) -> list[dict]:
     """
     Predicted vs observed frequency per bucket.
 
-    This is the plot to put in your README. 'My model is well calibrated' is a
+    This is the plot to put in your readme. 'My model is well calibrated' is a
     claim; this table is the evidence.
     """
     out = []

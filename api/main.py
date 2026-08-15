@@ -1,7 +1,7 @@
 """
 FastAPI serving layer.
 
-The design point worth defending: /predict NEVER returns a bare probability.
+/predict never returns a bare probability.
 Every response carries the freshness of the inputs it was built from, and a
 confidence label that degrades when data is stale or missing. If either player
 has no usable history, it refuses outright rather than returning a number built
@@ -75,7 +75,7 @@ def resolve_player(conn, name_or_id: str) -> tuple[str, str]:
     if len(rows) == 1:
         return rows[0]["player_id"], rows[0]["full_name"]
     if len(rows) > 1:
-        # Same display name, different players -- most often one per tour, since
+        # Same display name, different players, most often one per tour, since
         # the source stores names as surname-plus-initial with no first name.
         today = date.today().isoformat()
         cands = []
@@ -126,7 +126,7 @@ def players(q: str = Query("", description="name fragment"), limit: int = 12):
 
     Returns rank and last-match context alongside the name. The source data
     stores names as surname-plus-initial only ('Collignon R.'), so there are no
-    first names to show -- this context is what lets you tell two similar
+    first names to show, this context is what lets you tell two similar
     entries apart.
     """
     conn = db()
@@ -163,7 +163,7 @@ def players(q: str = Query("", description="name fragment"), limit: int = 12):
             "last_event": last["tournament"] if last else None,
             "matches": n_matches,
         })
-    # most active first -- the player you meant is usually the busier one
+    # most active first, the player you meant is usually the busier one
     out.sort(key=lambda x: -x["matches"])
     return {"players": out}
 
@@ -200,7 +200,7 @@ def player(name: str, as_of: str | None = None):
 
 def latest_known_rank(conn, player_id: str, as_of: str) -> int | None:
     """
-    Most recent rank we have for a player.
+    Most recent rank available for a player.
 
     Prefers the versioned rankings table, but falls back to the rank recorded
     on their latest match. Tennis-Data stores rank per match rather than as
@@ -229,7 +229,7 @@ def _predict_core(p1: str, p2: str, surface: str | None = None,
     Plain-Python prediction logic.
 
     Kept separate from the route handler because FastAPI's Query(...) defaults
-    are Query OBJECTS, not values, when a handler is called directly from other
+    are Query objects, not values, when a handler is called directly from other
     Python code. Routes stay thin; every internal caller uses this.
     """
     conn = db()

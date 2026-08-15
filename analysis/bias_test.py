@@ -10,7 +10,7 @@ check how often sides in each bucket actually won.
 If the market is efficient, observed win rate should match implied probability
 in every bucket. Systematic gaps = mispricing you could bet against.
 
-Note this tests the MARKET, not the model. No model involved at all.
+Note this tests the market, not the model. No model involved at all.
 
 Run: python bias_test.py
 """
@@ -51,7 +51,7 @@ def main():
 
     print(f"matches with closing odds: {len(rows)}\n")
 
-    # Each match contributes TWO observations: the winner's side (won=1) and
+    # Each match contributes two observations: the winner's side (won=1) and
     # the loser's side (won=0). Otherwise you only ever see winning sides.
     edges = [0.0, 0.05, 0.10, 0.20, 0.30, 0.40, 0.50,
              0.60, 0.70, 0.80, 0.90, 0.95, 1.0]
@@ -114,7 +114,7 @@ def main():
     print("actual odds offered, vig included.")
     print()
 
-    # favourites vs underdogs, simple split
+    # favorites vs underdogs, simple split
     fav_n = fav_w = fav_imp = 0
     dog_n = dog_w = dog_imp = 0
     fav_stake = fav_ret = dog_stake = dog_ret = 0.0
@@ -130,18 +130,18 @@ def main():
                 dog_stake += 1.0; dog_ret += price if won else 0.0
 
     print("=" * 78)
-    print("FAVOURITES vs UNDERDOGS")
+    print("FAVORITES vs UNDERDOGS")
     print("=" * 78)
     print(f"{'side':>12} {'n':>7} {'implied':>9} {'actual':>9} {'gap':>8} {'flat ROI':>10}")
     print("-" * 78)
-    print(f"{'favourites':>12} {fav_n:>7} {fav_imp/fav_n:>9.3f} {fav_w/fav_n:>9.3f} "
+    print(f"{'favorites':>12} {fav_n:>7} {fav_imp/fav_n:>9.3f} {fav_w/fav_n:>9.3f} "
           f"{fav_w/fav_n - fav_imp/fav_n:>+8.3f} {(fav_ret-fav_stake)/fav_stake:>+9.2%}")
     print(f"{'underdogs':>12} {dog_n:>7} {dog_imp/dog_n:>9.3f} {dog_w/dog_n:>9.3f} "
           f"{dog_w/dog_n - dog_imp/dog_n:>+8.3f} {(dog_ret-dog_stake)/dog_stake:>+9.2%}")
     print()
 
     print("=" * 78)
-    print("BY TOUR LEVEL (favourites only, implied >= 0.5)")
+    print("BY TOUR LEVEL (favorites only, implied >= 0.5)")
     print("=" * 78)
     print(f"{'level':>8} {'n':>7} {'implied':>9} {'actual':>9} {'gap':>8}")
     print("-" * 78)

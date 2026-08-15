@@ -1,7 +1,7 @@
 """
 Model-layer tests. Run: python tests/test_model.py
 
-These target the failure modes that don't raise exceptions -- the ones that
+These target the failure modes that don't raise exceptions, the ones that
 quietly produce a good-looking number that's wrong.
 """
 
@@ -44,7 +44,7 @@ check("elo written onto match rows", conn.execute(
 pids = [r["player_id"] for r in conn.execute("SELECT player_id FROM players LIMIT 10")]
 check("synthetic players have distinct ids", len(set(pids)) == len(pids))
 
-# -- quality score ------------------------------------------------------------
+#, quality score ------------------------------------------------------------
 beat_top10 = [{"won": 1, "opp_rank": 5}]
 beat_300 = [{"won": 1, "opp_rank": 300}]
 check("beating a top-10 scores above beating a 300",
@@ -56,7 +56,7 @@ check("losing to a 300 scores below losing to a top-10",
       quality_score(lost_300) < quality_score(lost_top10))
 check("empty history returns neutral 0.5", quality_score([]) == 0.5)
 
-# -- leakage: as_of must exclude the future -----------------------------------
+#, leakage: as_of must exclude the future -----------------------------------
 pid = pids[0]
 early = player_features(conn, pid, "Hard", "2025-06-01")
 late = player_features(conn, pid, "Hard", "2026-08-01")
@@ -70,7 +70,7 @@ h_before = h2h_features(conn, row["winner_id"], row["loser_id"], row["match_date
 h_after = h2h_features(conn, row["winner_id"], row["loser_id"], "2027-01-01")
 check("h2h as_of excludes the match itself", h_after["h2h_n"] > h_before["h2h_n"])
 
-# -- symmetry: swapping players must flip the sign of diff features -----------
+#, symmetry: swapping players must flip the sign of diff features -----------
 a, b = pids[0], pids[1]
 fab = build_features(conn, a, b, "Hard", "2026-06-01")["features"]
 fba = build_features(conn, b, a, "Hard", "2026-06-01")["features"]
@@ -87,7 +87,7 @@ check("symmetric features are unchanged under swap",
       fab["min_surface_n"] == fba["min_surface_n"]
       and fab["h2h_n"] == fba["h2h_n"])
 
-# -- dataset construction -----------------------------------------------------
+#, dataset construction -----------------------------------------------------
 X, y, keys, dates = build_dataset(conn, "2020-01-01", "2027-01-01", verbose=False)
 check(f"dataset non-empty (got {len(X)})", len(X) > 300)
 check("labels are roughly balanced (randomized player order)",
@@ -98,7 +98,7 @@ check("no NaNs in feature matrix", not np.isnan(X).any())
 check("no infinities in feature matrix", not np.isinf(X).any())
 
 # Serve/return features are legitimately flat when the source carries no
-# serve data -- which is the case for tennis-data.co.uk. They're kept in the
+# serve data, which is the case for tennis-data.co.uk. They're kept in the
 # schema so a stats-bearing source drops in without a migration. Everything
 # else must vary.
 SERVE_FEATURES = {"serve_available", "d_serve_won", "d_ace_rate",
@@ -136,18 +136,18 @@ ei = FEATURE_NAMES.index("d_elo")
 check(f"elo gap varies across matchups (std {X[:, ei].std():.1f})",
       X[:, ei].std() > 1.0)
 
-# -- time split ---------------------------------------------------------------
+#, time split ---------------------------------------------------------------
 tr, cal, te = time_split(dates)
 check("train slice precedes test slice chronologically",
       dates[tr.stop - 1] <= dates[te.start])
 check("splits partition the dataset with no overlap",
       tr.stop == cal.start and cal.stop == te.start and te.stop == len(dates))
 
-# -- calibration method selection ---------------------------------------------
+#, calibration method selection ---------------------------------------------
 check("small calibration set picks sigmoid", pick_calibration_method(300) == "sigmoid")
 check("large calibration set picks isotonic", pick_calibration_method(5000) == "isotonic")
 
-# -- model trains and produces bounded probabilities --------------------------
+#, model trains and produces bounded probabilities --------------------------
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.frozen import FrozenEstimator
@@ -169,7 +169,7 @@ from sklearn.metrics import brier_score_loss
 brier = brier_score_loss(y[te], p)
 check(f"beats a coinflip on Brier ({brier:.4f} < 0.25)", brier < 0.25)
 
-# -- Kelly sizing -------------------------------------------------------------
+#, Kelly sizing -------------------------------------------------------------
 from model.backtest import MAX_STAKE, devig_two_way, kelly_stake
 
 check("no stake when there is no edge", kelly_stake(0.40, 2.00) == 0.0)
@@ -178,7 +178,7 @@ check("stake is capped", kelly_stake(0.99, 10.0) <= MAX_STAKE)
 fa, fb_ = devig_two_way(2.00, 2.00)
 check("de-vigged probabilities sum to 1", abs(fa + fb_ - 1.0) < 1e-9)
 fa, fb_ = devig_two_way(1.50, 3.00)
-check("de-vig preserves the favourite", fa > fb_)
+check("de-vig preserves the favorite", fa > fb_)
 
 print("\n" + "=" * 46)
 n_fail = sum(1 for ok, _ in results if not ok)

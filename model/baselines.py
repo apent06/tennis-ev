@@ -6,15 +6,15 @@ complexity, or would something far simpler do as well?
 
 Four predictors, same held-out matches, same metrics:
 
-  1. Coin flip           -- the floor. Anything must beat this.
-  2. Higher rank wins    -- the trivial predictor. In tennis this is
+  1. Coin flip          , the floor. Anything must beat this.
+  2. Higher rank wins   , the trivial predictor. In tennis this is
                             surprisingly strong, around 65% accuracy, and a lot
                             of published models quietly fail to beat it.
-  3. Elo                 -- one number per player, updated after each match.
-                            The standard baseline in tennis modelling.
-  4. Surface Elo         -- same, per surface.
-  5. The full model      -- 35 features, gradient boosted, calibrated.
-  6. The market          -- closing odds with the vig removed, where available.
+  3. Elo                , one number per player, updated after each match.
+                            The standard baseline in tennis modeling.
+  4. Surface Elo        , same, per surface.
+  5. The full model     , 35 features, gradient boosted, calibrated.
+  6. The market         , closing odds with the vig removed, where available.
 
 If (5) doesn't clearly beat (2) and (3), the extra features are decoration.
 That is a real possible outcome and worth finding out before adding more.
@@ -84,7 +84,7 @@ def compare(conn: sqlite3.Connection, start: str, end: str,
     print(f"\n  evaluating on {len(y_te)} held-out matches "
           f"({dates[te.start]} to {dates[-1]})\n")
 
-    # feature columns we can read the simple baselines straight out of
+    # feature columns the simple baselines read straight out of
     col = {n: i for i, n in enumerate(FEATURE_NAMES)}
     p_elo = [1 / (1 + np.exp(-X[i][col["d_elo"]] / 173.7)) for i in idx]
     p_elo_s = [1 / (1 + np.exp(-X[i][col["d_elo_surface"]] / 173.7)) for i in idx]

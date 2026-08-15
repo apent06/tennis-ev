@@ -6,7 +6,7 @@ Daily ingest entry point.
     python -m ingest.daily --db tennis.db --check
     python -m ingest.daily --db tennis.db --review
 
-Why a ROLLING window rather than just yesterday: results get amended after
+Why a rolling window rather than just yesterday: results get amended after
 first publication (late finishes, retirements, corrections, walkovers). Re-pulling
 the last few days with idempotent upserts catches those for free.
 """

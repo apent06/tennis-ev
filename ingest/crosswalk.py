@@ -1,14 +1,14 @@
 """
-Player identity resolution between a provider's IDs and our canonical ids.
+Player identity resolution between a provider's IDs and my canonical ids.
 
 This is the highest-risk component in the pipeline. A wrong mapping doesn't
-throw -- it silently serves a confident prediction built on the wrong player's
+throw, it silently serves a confident prediction built on the wrong player's
 form. So the design is deliberately conservative:
 
   - exact normalized-name match          -> auto-accept (confidence 1.0)
   - strong fuzzy match, unambiguous      -> auto-accept (confidence >= 0.90)
   - anything weaker, or ambiguous        -> park it for manual review, and
-                                            REFUSE to resolve until reviewed
+                                            refuse to resolve until reviewed
 
 Unresolved players surface as a data gap, not as a guess.
 """
@@ -32,15 +32,15 @@ def _similarity(a: str, b: str) -> float:
     Similarity between two normalized names.
 
     The dominant real-world case is abbreviation: feeds emit 'R. Collignon'
-    while our canonical record says 'Raphael Collignon'. After normalization
-    those become 'collignon' vs 'collignon raphael' -- a SUBSET, not a near
+    while the canonical record says 'Raphael Collignon'. After normalization
+    those become 'collignon' vs 'collignon raphael', a subset, not a near
     string match. Jaccard punishes that (0.5) and edit distance punishes it
     (0.69), so both understate a match that is actually very likely.
 
     So containment is the primary signal, not overlap. The false positives it
-    invites -- a bare surname matching several players -- are caught by the
+    invites, a bare surname matching several players, are caught by the
     ambiguity margin in resolve(), which is the correct place for that check.
-    A common surname SHOULD go to manual review rather than be scored away.
+    A common surname should go to manual review rather than be scored away.
     """
     if not a or not b:
         return 0.0
@@ -83,7 +83,7 @@ def resolve(conn: sqlite3.Connection, source: str, source_player_id: str | None,
     Return a canonical player_id, or None if unresolved.
 
     None is a legitimate, expected outcome. Downstream must treat it as a data
-    gap and degrade confidence -- never as a reason to fall back to name
+    gap and degrade confidence, never as a reason to fall back to name
     matching at query time.
     """
     key_id = source_player_id or f"name:{normalize_name(name)}"

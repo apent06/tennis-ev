@@ -71,14 +71,14 @@ feature that isn't working, and there's a test for it now.
 Two scripts in `analysis/` that test the market directly. No model involved.
 
 `bias_test.py` buckets every side by the market's de-vigged probability and checks
-how often each bucket actually won. Favourites: implied 0.677, actual 0.677 over
-24,106 observations. Underdogs: implied 0.322, actual 0.322. No favourite-longshot
+how often each bucket actually won. Favorites: implied 0.677, actual 0.677 over
+24,106 observations. Underdogs: implied 0.322, actual 0.322. No favorite-longshot
 bias at tour level.
 
 `underdog_test.py` tests whether the market anchors on ranking and misses
 fundamentals. For every match it checks whether the underdog actually had better
 last-10 form, better opponent quality, and a better surface record than the
-favourite. Where all three were true (n=782), the market implied 0.417 and they
+favorite. Where all three were true (n=782), the market implied 0.417 and they
 won 0.416. The control group landed near zero too. The market prices form and
 opponent quality correctly.
 

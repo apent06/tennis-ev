@@ -195,7 +195,7 @@ python cli.py check        how stale the data is
 python cli.py review       player names it couldn't match automatically
 python cli.py backtest     walk-forward test against closing odds
 python cli.py migrate      adds new columns to an existing database
-python bias_test.py        are favourites or underdogs mispriced?
+python bias_test.py        are favorites or underdogs mispriced?
 python underdog_test.py    does the market miss underdogs with better form?
 ```
 

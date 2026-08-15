@@ -5,7 +5,7 @@ after building the database.
 
 | Script | Question it answers |
 |---|---|
-| `bias_test.py` | Does the market misprice favourites or underdogs? |
+| `bias_test.py` | Does the market misprice favorites or underdogs? |
 | `underdog_test.py` | Does the market miss underdogs whose form is better? |
 | `report.py` | Pretty-print a saved `backtest.txt` |
 

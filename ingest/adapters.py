@@ -1,12 +1,12 @@
 """
 Provider adapters.
 
-The whole point of this file: trial tiers expire and providers change their
-response shape. Everything downstream depends on the NORMALIZED dict below, so
+Trial tiers expire and providers change their
+response shape. Everything downstream depends on the normalized dict below, so
 swapping providers means writing one new class, not touching the pipeline.
 
 Normalized match dict:
-    match_date        str  ISO YYYY-MM-DD
+    match_date        str  ISO YYYY-mm-dd
     tour              str  'ATP' | 'WTA'
     tour_level        str  'G'|'M'|'A'|'C'|'F'|'D'   (Sackmann convention)
     tournament        str
@@ -14,7 +14,7 @@ Normalized match dict:
     surface           str  'Hard'|'Clay'|'Grass'|'Carpet'|None
     winner_name       str
     loser_name        str
-    winner_rank       int|None    rank AS OF the match
+    winner_rank       int|None    rank as of the match
     loser_rank        int|None
     score             str|None
     retirement        bool
@@ -50,7 +50,7 @@ def guess_tour_level(tournament: str | None) -> str | None:
     """
     Crude but adequate mapping onto Sackmann's tour_level codes.
     Worth replacing with an explicit tournament reference table once you have
-    one -- this is the kind of heuristic that quietly misclassifies edge cases.
+    one, this is the kind of heuristic that quietly misclassifies edge cases.
     """
     if not tournament:
         return None
@@ -90,7 +90,7 @@ class ApiTennisSource(MatchSource):
     """
     Adapter for api-tennis.com.
 
-    NOTE: verify field names against their live docs before first run -- the
+    NOTE: verify field names against their live docs before first run, the
     response shape below reflects their documented get_fixtures/get_events
     payload, but providers do rename things. Fail loudly rather than silently
     mapping a missing field to None.
@@ -137,7 +137,7 @@ class ApiTennisSource(MatchSource):
     @staticmethod
     def _normalize(e: dict, iso: str) -> dict | None:
         # Only completed singles matches. Live/scheduled rows get picked up on
-        # a later run -- that's exactly why we re-pull a rolling window.
+        # a later run, that's exactly why the rolling window exists.
         status = str(e.get("event_status", "")).lower()
         if status not in ("finished", "final", "ended"):
             return None
@@ -170,7 +170,7 @@ class ApiTennisSource(MatchSource):
             "surface": norm_surface(e.get("tournament_surface")),
             "winner_name": w_name,
             "loser_name": l_name,
-            "winner_rank": None,   # filled from our own rankings table
+            "winner_rank": None,   # filled from the rankings table
             "loser_rank": None,
             "score": score,
             "retirement": "ret" in str(score).lower(),

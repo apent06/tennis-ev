@@ -1,14 +1,14 @@
 """
 Per-prediction explanation.
 
-Question answered: for THIS matchup, which factors pushed the number toward
+For this matchup, which factors pushed the number toward
 which player, and by how much?
 
-Method -- leave-one-out neutralisation. Take the real prediction, then re-run it
+Method, leave-one-out neutralization. Take the real prediction, then re-run it
 with one feature reset to "these two players are identical on this", and measure
 how far the probability moves. That movement is what the feature was worth here.
 
-    contribution_i = p_actual - p_with_feature_i_neutralised
+    contribution_i = p_actual - p_with_feature_i_neutralized
 
 Positive means the feature favoured player 1; negative favoured player 2.
 
@@ -20,7 +20,7 @@ here than the last few decimal places.
 Honest limits, worth stating wherever this is displayed:
   - Contributions won't sum exactly to the total, because gradient boosting uses
     feature interactions and this method ignores them.
-  - This explains what the MODEL did. It is not evidence the model is right --
+  - This explains what the model did. It is not evidence the model is right --
     backtesting showed it doesn't beat closing odds.
 """
 
@@ -42,7 +42,7 @@ def explain(model, feats: dict, top_n: int = 6) -> dict:
     base_row = [feats[n] for n in FEATURE_NAMES]
     p_actual = float(predict_calibrated(model, [base_row])[0])
 
-    # Build every neutralised variant at once -- one predict call, not eighteen.
+    # Build every neutralized variant at once, one predict call, not eighteen.
     variants, names = [], []
     for i, name in enumerate(FEATURE_NAMES):
         if name not in NEUTRAL:

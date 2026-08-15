@@ -1,18 +1,18 @@
 """
-Subset test: do underdogs with better FUNDAMENTALS beat their market price?
+Subset test: do underdogs with better fundamentals beat their market price?
 
 The hypothesis: the market anchors on ranking and reputation. Sometimes the
 player priced as an underdog actually has better recent form and has been
 beating better opponents. In those specific matches, the underdog should win
 more often than the price implies.
 
-This tests it directly against real data. No model involved -- it compares raw
+This tests it directly against real data. No model involved, it compares raw
 form/quality features against the market's own probability.
 
 Method:
   1. For every match with closing odds, identify which side the market made the
      underdog (de-vigged probability < 0.5).
-  2. Compute both players' fundamentals AS OF the day before the match:
+  2. Compute both players' fundamentals as of the day before the match:
        - last-10 win rate
        - opponent-quality score (wins weighted by opponent rank tier)
        - surface win rate over the past 365 days
@@ -85,7 +85,7 @@ def main():
     print(f"matches with odds and player ids: {len(rows)}")
     print("computing fundamentals (this takes a few minutes)...\n")
 
-    # buckets of (implied, won, price) for the UNDERDOG side only
+    # buckets of (implied, won, price) for the underdog side only
     all_dogs = []
     better_form = []
     better_quality = []
@@ -147,7 +147,7 @@ def main():
     print(f"\nskipped {skipped} matches (insufficient history)\n")
 
     print("=" * 100)
-    print("UNDERDOGS, SPLIT BY WHETHER THEIR FUNDAMENTALS BEAT THE FAVOURITE'S")
+    print("UNDERDOGS, SPLIT BY WHETHER THEIR FUNDAMENTALS BEAT THE FAVORITE'S")
     print("=" * 100)
     summarize("ALL underdogs (baseline)", all_dogs)
     print()

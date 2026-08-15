@@ -4,12 +4,12 @@ Elo ratings for tennis, computed by chronological replay.
 Why Elo alongside the feature model: it captures opponent quality recursively
 in a way hand-built tier weights can't. Beating a player who has been beating
 strong players raises your rating more, automatically, without anyone deciding
-what a "quality win" is worth. In tennis it's a stubbornly good baseline -- if
+what a "quality win" is worth. In tennis it's a stubbornly good baseline, if
 an eighteen-feature model can't beat surface Elo, the features aren't earning
 their keep.
 
 Leak-free by construction: matches are replayed in date order, and each
-player's rating BEFORE the match is written onto that match row. Nothing ever
+player's rating before the match is written onto that match row. Nothing ever
 sees a rating that incorporates the result it's trying to predict.
 
 Two ratings per player:
@@ -55,7 +55,7 @@ def rebuild(conn: sqlite3.Connection, verbose: bool = True) -> dict:
     """
     Replay every match in date order, writing pre-match ratings onto each row.
 
-    Run after any bulk load, and after each daily ingest. Idempotent -- it
+    Run after any bulk load, and after each daily ingest. Idempotent, it
     always starts from scratch, so ratings can't drift from repeated runs.
     """
     rows = conn.execute(
@@ -91,7 +91,7 @@ def rebuild(conn: sqlite3.Connection, verbose: bool = True) -> dict:
         else:
             sw = sl = None
 
-        # record the PRE-match state, then update
+        # record the pre-match state, then update
         updates.append((rw, rl, sw, sl, r["match_key"], r["source"]))
 
         mult = BO5_MULTIPLIER if r["best_of"] == 5 else 1.0
@@ -170,7 +170,7 @@ def as_of(conn: sqlite3.Connection, player_id: str, date_iso: str,
           surface: str | None = None) -> tuple[float, int]:
     """
     Rating as it stood before `date_iso`, read from the last match row before
-    that date. This is what backtests must use -- `current()` would leak.
+    that date. This is what backtests must use, `current()` would leak.
     """
     if surface:
         sql = """SELECT CASE WHEN winner_id = :pid THEN w_elo_surface

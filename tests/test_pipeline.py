@@ -3,7 +3,7 @@ Smoke tests. Run: python test_pipeline.py
 
 These cover the three things most likely to break silently:
   1. re-running ingest must not duplicate rows (idempotency)
-  2. an ambiguous player name must NOT auto-resolve
+  2. an ambiguous player name must not auto-resolve
   3. rank lookups must be point-in-time, not current
 """
 
@@ -35,20 +35,20 @@ db_path = os.path.join(tempfile.mkdtemp(), "t.db")
 conn = connect(db_path)
 init_db(conn)
 
-# -- name normalization -------------------------------------------------------
+#, name normalization -------------------------------------------------------
 check("normalize folds accents/case/order",
       normalize_name("Raphaël COLLIGNON") == normalize_name("Collignon, Raphael"))
 check("normalize drops bare initials",
       normalize_name("R. Collignon") == "collignon")
 
-# -- match key stability ------------------------------------------------------
+#, match key stability ------------------------------------------------------
 k1 = make_match_key("2026-08-11", "Cincinnati Masters", "Raphael Collignon", "Mariano Navone")
 k2 = make_match_key("2026-08-11", "Cincinnati Masters", "Mariano Navone", "Raphael Collignon")
 check("match_key is order-independent", k1 == k2)
 k3 = make_match_key("2026-08-12", "Cincinnati Masters", "Raphael Collignon", "Mariano Navone")
 check("match_key changes with date", k1 != k3)
 
-# -- seed canonical players ---------------------------------------------------
+#, seed canonical players ---------------------------------------------------
 players = [
     ("sack_001", "Raphael Collignon", "ATP"),
     ("sack_002", "Mariano Navone", "ATP"),
@@ -61,11 +61,11 @@ for pid, full, tour in players:
         (pid, full, normalize_name(full), tour))
 conn.commit()
 
-# -- crosswalk ----------------------------------------------------------------
+#, crosswalk ----------------------------------------------------------------
 rid = resolve(conn, "fixture", "p_collignon", "R. Collignon", "ATP")
 check("exact-surname match resolves", rid == "sack_001")
 
-# Ambiguity: two near-identical names must NOT auto-resolve.
+# Ambiguity: two near-identical names must not auto-resolve.
 conn.execute("INSERT INTO players VALUES ('sack_900','Juan Martin Lopez',?,'ATP',NULL,NULL)",
              (normalize_name("Juan Martin Lopez"),))
 conn.execute("INSERT INTO players VALUES ('sack_901','Juan Manuel Lopez',?,'ATP',NULL,NULL)",
@@ -79,7 +79,7 @@ confirm(conn, "fixture", "p_ambig", "sack_900")
 check("manual confirm takes effect",
       resolve(conn, "fixture", "p_ambig", "J. Lopez", "ATP") == "sack_900")
 
-# -- point-in-time rankings ---------------------------------------------------
+#, point-in-time rankings ---------------------------------------------------
 upsert_ranking(conn, "sack_001", "ATP", 55, 900, "2026-06-01")
 upsert_ranking(conn, "sack_001", "ATP", 38, 1150, "2026-08-04")
 check("rank_as_of returns the OLD rank for an old date",
@@ -89,7 +89,7 @@ check("rank_as_of returns the new rank after the update",
 check("rank_as_of returns None before any snapshot",
       rank_as_of(conn, "sack_001", "2026-01-01") is None)
 
-# -- ingest + idempotency -----------------------------------------------------
+#, ingest + idempotency -----------------------------------------------------
 src = FixtureSource(os.path.join(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))), "fixtures", "sample.json"))
 c1 = run(conn, src, date(2026, 8, 11), date(2026, 8, 12))
@@ -109,13 +109,13 @@ total_after = conn.execute("SELECT COUNT(*) n FROM matches").fetchone()["n"]
 check(f"amended score updates in place (rows still 3, got {total_after})", total_after == 3)
 check(f"amendment counted as an update (got {c3['updated']})", c3["updated"] >= 1)
 
-# -- rank backfill onto matches ----------------------------------------------
+#, rank backfill onto matches ----------------------------------------------
 row = conn.execute(
     "SELECT winner_rank FROM matches WHERE source_event_key='991001'").fetchone()
 check(f"winner_rank backfilled point-in-time (got {row['winner_rank']})",
       row["winner_rank"] == 38)
 
-# -- feature queries ----------------------------------------------------------
+#, feature queries ----------------------------------------------------------
 form = player_form(conn, "sack_001", n=10, as_of="2026-08-13")
 check(f"form string built (got '{form['form_string']}')", form["form_string"] == "WW")
 check("form carries staleness metadata", "days_since_last_match" in form)
@@ -135,7 +135,7 @@ check(f"h2h found 1 meeting (got {len(h2h)})", len(h2h) == 1)
 qw = quality_wins(conn, "sack_001", as_of="2026-08-13")
 check("quality_wins buckets by opponent rank tier", isinstance(qw, dict) and "top10" in qw)
 
-# -- backtest leakage guard ---------------------------------------------------
+#, backtest leakage guard ---------------------------------------------------
 past = player_form(conn, "sack_001", as_of="2026-08-12")
 check(f"as_of excludes same-day/future matches (got '{past['form_string']}')",
       past["form_string"] == "W")

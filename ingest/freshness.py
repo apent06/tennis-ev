@@ -6,7 +6,7 @@ Two jobs here:
 1. Turn "the data feels stale" into a number: observed ingestion lag per tour
    level, and an SLO check that alerts when the newest match is too old.
 
-2. Serve features WITH their staleness attached, so the API can degrade
+2. Serve features with their staleness attached, so the API can degrade
    confidence instead of quietly returning a number built on three-week-old
    form.
 """
@@ -16,7 +16,7 @@ from __future__ import annotations
 import sqlite3
 from datetime import date, datetime, timedelta
 
-# Lag budgets in days. Challengers are usually the worst offender -- measure
+# Lag budgets in days. Challengers are usually the worst offender, measure
 # yours and tune these rather than trusting the defaults.
 SLO_DAYS = {"G": 2, "M": 2, "A": 3, "C": 5, "S": 7}
 DEFAULT_SLO = 5
@@ -24,7 +24,7 @@ STALE_FORM_DAYS = 45   # matches model.features.STALE_HARD_DAYS
 
 
 def observed_lag(conn: sqlite3.Connection, days_back: int = 90) -> list[dict]:
-    """Median/p90 lag between match date and when we first saw the row."""
+    """Median/p90 lag between match date and when the row was first seen."""
     cutoff = (date.today() - timedelta(days=days_back)).isoformat()
     rows = conn.execute(
         """SELECT tour_level, match_date, first_seen_at
@@ -136,7 +136,7 @@ def surface_splits(conn: sqlite3.Connection, player_id: str, season: int | None 
 def quality_wins(conn: sqlite3.Connection, player_id: str, window_days: int = 365,
                  as_of: str | None = None) -> dict:
     """
-    Win rate bucketed by opponent rank tier -- the opponent-quality view.
+    Win rate bucketed by opponent rank tier, the opponent-quality view.
 
     Uses the rank stored ON the match row, so it's point-in-time correct with
     no rankings join and no leakage.

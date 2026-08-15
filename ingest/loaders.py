@@ -3,7 +3,7 @@ Historical backfill loaders.
 
 Context: Jeff Sackmann's tennis_atp / tennis_wta repos are no longer available
 on GitHub (as of Aug 2026 his account lists only tennis_MatchChartingProject).
-If you have a local clone from before, use `load_sackmann_dir` -- the data is
+If you have a local clone from before, use `load_sackmann_dir`, the data is
 static so an old copy is still perfectly good. If not, tennis-data.co.uk is the
 free fallback: match-level results back to 2000, with closing odds, which you
 need anyway as a calibration baseline.
@@ -66,7 +66,7 @@ def ensure_player(conn: sqlite3.Connection, name: str, tour: str,
     Get-or-create a canonical player by normalized name.
 
     Deterministic id derived from the normalized name so re-runs are stable.
-    Real Sackmann ids are better if you have them -- pass them through instead.
+    Real Sackmann ids are better if you have them, pass them through instead.
     """
     norm = normalize_name(name)
     if not norm:
@@ -89,17 +89,17 @@ def ensure_player(conn: sqlite3.Connection, name: str, tour: str,
 
 # Their files are one .xlsx per year: e.g. 2025/2025.xlsx (ATP),
 # w2025/w2025.xlsx (WTA). Download manually, then point this at the folder.
-# VERIFY the header row against a real file before trusting the mapping below --
+# verify the header row against a real file before trusting the mapping below --
 # they have changed column names between seasons.
 TD_COLUMNS = {
     "date": "Date", "tournament": "Tournament", "series": "Series",
     "surface": "Surface", "round": "Round", "winner": "Winner", "loser": "Loser",
     "wrank": "WRank", "lrank": "LRank", "comment": "Comment",
-    # match shape -- all present in their files and worth having
+    # match shape, all present in their files and worth having
     "best_of": "Best of", "court": "Court",
     "wsets": "Wsets", "lsets": "Lsets",
     "wpts": "WPts", "lpts": "LPts",
-    # closing odds -- Pinnacle is the sharpest, use it as the benchmark
+    # closing odds, Pinnacle is the sharpest, use it as the benchmark
     "psw": "PSW", "psl": "PSL", "avgw": "AvgW", "avgl": "AvgL",
 }
 
@@ -190,7 +190,7 @@ def load_tennis_data_file(conn: sqlite3.Connection, path: str, tour: str = "ATP"
 
 def _store_odds(conn: sqlite3.Connection, matches: list[dict], odds: list[tuple]) -> None:
     """
-    Closing odds are the calibration benchmark -- NOT a training feature.
+    Closing odds are the calibration benchmark, not a training feature.
 
     Training on them teaches the model to imitate the market, which guarantees
     you never beat it. Kept in a separate table so it's hard to leak by accident.
@@ -268,7 +268,7 @@ def load_sackmann_dir(conn: sqlite3.Connection, folder: str, tour: str = "ATP") 
     """
     Load an existing local clone of tennis_atp / tennis_wta.
 
-    The repos are gone from GitHub, but the data is static -- an old clone is
+    The repos are gone from GitHub, but the data is static, an old clone is
     still fully valid. Reads atp_matches_*.csv and atp_players.csv.
     """
     total = {"seen": 0, "inserted": 0, "updated": 0}
@@ -348,7 +348,7 @@ def generate_synthetic(conn: sqlite3.Connection, n_players: int = 120,
 
     Each player gets a latent skill; match outcomes follow a logistic function
     of the skill gap plus a surface-specific bonus. That means a well-built
-    model SHOULD recover signal here -- if it can't beat 50% on synthetic data,
+    model should recover signal here, if it can't beat 50% on synthetic data,
     the bug is in your code, not your features.
     """
     rng = random.Random(seed)
@@ -356,8 +356,8 @@ def generate_synthetic(conn: sqlite3.Connection, n_players: int = 120,
     levels = ["G", "M", "A", "C"]
 
     # Distinct surname-like names. NOTE: normalize_name() strips digits and
-    # single letters, so names like 'Player A001' would ALL collapse to
-    # 'player' and resolve to one id -- which silently turns every match into
+    # single letters, so names like 'Player A001' would all collapse to
+    # 'player' and resolve to one id, which silently turns every match into
     # a player-vs-himself row with zero-variance features. Real names only.
     syl_a = ["Bar", "Kov", "Mar", "Del", "Fer", "Nov", "Ras", "Tor", "Vel", "Zan",
              "Cor", "Hal", "Jur", "Lek", "Mun", "Pav", "Rud", "Sav", "Tam", "Vin"]
@@ -384,7 +384,7 @@ def generate_synthetic(conn: sqlite3.Connection, n_players: int = 120,
         })
     conn.commit()
 
-    # Guard: distinct names MUST yield distinct ids. If this trips, the name
+    # Guard: distinct names must yield distinct ids. If this trips, the name
     # generator is colliding under normalization.
     ids = {p["id"] for p in players}
     if len(ids) != n_players:

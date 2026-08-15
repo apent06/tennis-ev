@@ -1,4 +1,4 @@
-﻿import json, io
+import json, io
 raw = io.open("backtest.txt", encoding="utf-16", errors="replace").read()
 start = raw.index("{")
 data = json.loads(raw[start:])
