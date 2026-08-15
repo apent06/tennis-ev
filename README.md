@@ -9,6 +9,16 @@ The answer is no. The market is better than my model. But the probabilities it
 produces are well calibrated, and getting to a trustworthy "no" meant building
 the pipeline carefully enough that the result means something.
 
+This is the third version. The first tried to cover multiple sports, but
+basketball and the others each needed their own data model and their own idea of
+what a matchup even is, and keeping that general made everything worse, so I cut
+it back to tennis. The second was tennis only but ran on far fewer data points
+and weighted them differently, leaning on factors I later found mattered less
+than I thought, and it fell apart on certain matchups without any clear reason
+why. That is most of the reason this version is built around calibration and
+backtesting rather than just picking a side. Both earlier versions lived as local
+scripts and spreadsheets, so the commit history here only covers the rewrite.
+
 ## Results
 
 Walk-forward backtest, 11 retraining windows, 11,817 predictions on ATP/WTA
