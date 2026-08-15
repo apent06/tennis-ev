@@ -21,29 +21,30 @@ history here only covers the rewrite.
 
 ## Results
 
-Walk-forward backtest, 11 retraining windows, 11,817 predictions on ATP/WTA
+Walk-forward backtest, 11 retraining windows, 11,921 predictions on ATP/WTA
 matches from Jan 2024 to Aug 2026. Trained on about 24,000 matches.
 
 Well calibrated, but does not beat the closing line.
 
 | | Model | Market (vig removed) |
 |---|---|---|
-| Brier | 0.2261 | 0.2054 |
-| Accuracy | 62.7% | 67.3% |
-| AUC | 0.681 | 0.742 |
+| Brier | 0.2261 | 0.2063 |
+| Accuracy | 62.6% | 67.0% |
+| AUC | 0.679 | 0.739 |
 
 Calibration is the part that worked. When the model says 60%, that player wins
 about 60% of the time:
 
 | Predicted range | n | Avg predicted | Actually won |
 |---|---|---|---|
-| 0.4-0.5 | 3006 | 0.457 | 0.462 |
-| 0.5-0.6 | 3037 | 0.546 | 0.559 |
-| 0.6-0.7 | 1872 | 0.638 | 0.638 |
-| 0.7-0.8 | 866 | 0.742 | 0.718 |
+| 0.3-0.4 | 1664 | 0.360 | 0.355 |
+| 0.4-0.5 | 2903 | 0.448 | 0.450 |
+| 0.5-0.6 | 2857 | 0.552 | 0.556 |
+| 0.6-0.7 | 1839 | 0.647 | 0.637 |
+| 0.7-0.8 | 734 | 0.741 | 0.728 |
 
-ROI is negative everywhere with a real sample size: -6.6% at ATP/WTA 250-500,
--13.3% at Grand Slams, +0.1% at Masters.
+ROI is negative at every tour level with a real sample: -8.2% at ATP/WTA 250-500,
+-1.6% at Masters, -17.5% at Grand Slams.
 
 The most useful thing I found: raising the edge threshold from 4% to 10% made ROI
 *worse*, not better. If the model had real signal, the matches where it disagrees
@@ -51,24 +52,25 @@ most with the market should be its best bets. They're its worst instead, which
 tells me those disagreements are my model being wrong rather than the market
 being wrong.
 
-Full output in `results/results_2026-08-13.txt`.
+Full output in `results/results_2026-08-15.txt`.
 
 ## Baselines
 
-Same held-out matches (n=1,969, Mar to Aug 2026), same metrics.
+Same held-out matches (n=1,991, Mar 21 to Aug 14 2026), same metrics.
 
 | Predictor | Accuracy | AUC | Brier |
 |---|---|---|---|
-| Coin flip | 0.499 | 0.500 | 0.2500 |
-| Higher rank wins | 0.618 | 0.673 | 0.2299 |
-| Elo | 0.622 | 0.687 | 0.2276 |
-| Surface Elo | 0.634 | 0.683 | 0.2292 |
-| **Full model (35 features)** | 0.627 | 0.681 | **0.2261** |
-| Closing odds (vig removed) | 0.673 | 0.742 | 0.2054 |
+| Coin flip | 0.508 | 0.500 | 0.2500 |
+| Higher rank wins | 0.621 | 0.674 | 0.2294 |
+| Elo | 0.621 | 0.686 | 0.2273 |
+| Surface Elo | 0.636 | 0.682 | 0.2295 |
+| **Full model (35 features)** | 0.619 | 0.679 | **0.2270** |
+| Closing odds (vig removed) | 0.670 | 0.739 | 0.2063 |
 
-The model beats every simple baseline, but barely. It's 0.004 Brier over rank
-alone and effectively tied with plain Elo. Most of what's predictable from public
-tennis data is already in the ranking.
+The model has the best Brier score, but only by 0.0003 over plain Elo, which is
+noise. On accuracy it is the worst of the four real predictors: surface Elo beats
+it by 1.7 points, and both rank alone and Elo edge it out. Thirty-five features
+and a gradient booster are not buying anything over one number per player.
 
 This harness also caught a real bug. Rank-only scored exactly 0.500 AUC, which is
 impossible for a predictor with any signal. The rankings table was empty for this
@@ -131,9 +133,10 @@ but they're no longer on GitHub. As of Aug 2026 his account only has
 `tennis_MatchChartingProject`. `cli.py load-sackmann` still exists for anyone with
 an old local clone, since that data is static and still valid.
 
-`api-tennis.com` is wired up as a daily freshness layer but isn't running. The
-dataset ends 2026-08-03, so it's missing the Cincinnati swing. The `/health`
-endpoint reports this instead of hiding it.
+`api-tennis.com` is wired up as a daily freshness layer but isn't running, so
+refreshing means re-downloading the spreadsheets by hand. Tennis-Data updates
+weekly, so the data is never more than a few days behind. The `/health` endpoint
+reports how stale it is instead of hiding it.
 
 The spreadsheets aren't in this repo. Tennis-Data holds copyright on them, so
 download them yourself into `data/`.
